@@ -4,12 +4,31 @@ on:
   push:
     branches:
       - trunk
+  pull_request:
 
 permissions:
   contents: read
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Setup Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
+        with:
+          go-version-file: go.mod
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@4afd733a84b2f1a89f5c3a951ca3a9d70b40c7ea # v7
+        with:
+          version: latest
+
   snapshot:
+    needs: lint
+    if: github.event_name == 'push'
     runs-on: macos-latest
     steps:
       - name: Checkout
@@ -32,5 +51,5 @@ jobs:
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: devstrap-snapshot
-          path: dist/*.tar.gz
+          path: dist/devstrap_*/devstrap
           retention-days: 14

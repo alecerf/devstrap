@@ -4,9 +4,13 @@ builds:
   - id: devstrap
     main: .
     binary: devstrap
+    env:
+      - CGO_ENABLED=0
     goos:
       - darwin
+      - linux
     goarch:
+      - amd64
       - arm64
     ldflags:
       - -s -w -X github.com/alecerf/devstrap/internal/cli.Version={{ .Version }}
@@ -18,6 +22,9 @@ archives:
     formats:
       - tar.gz
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: "checksums.txt"
 
 changelog:
   sort: asc
