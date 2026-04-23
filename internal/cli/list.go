@@ -18,7 +18,14 @@ func newListCmd() *cobra.Command {
 
 func runList(_ *cobra.Command, _ []string) {
 	plat := tool.DetectPlatform()
-	order, all := BuildTools(baseDir, plat)
+
+	order, all, err := BuildTools(baseDir, plat)
+	if err != nil {
+		fmt.Printf("  %s %v\n", redBold("✖"), err)
+
+		return
+	}
+
 	p := newPrinter(order)
 	ctx := context.Background()
 

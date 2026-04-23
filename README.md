@@ -6,13 +6,12 @@ Bootstrap and update your development tools with a single command.
 
 devstrap is a CLI tool that installs and keeps development tools up-to-date by downloading official releases. It verifies SHA-256 checksums on every download and supports both macOS and Linux.
 
+Tool definitions are maintained in a separate [index repository](https://github.com/alecerf/devstrap-index) so that new tools can be added without releasing a new devstrap binary.
+
 ## Supported Tools
 
-| Tool           | Source                          |
-| -------------- | ------------------------------- |
-| Go             | go.dev official releases        |
-| Node.js        | nodejs.org official releases    |
-| golangci-lint  | GitHub releases                 |
+Tools are defined in the [devstrap-index](https://github.com/alecerf/devstrap-index) repository.
+Run `devstrap index list` to see all available tools after updating the index.
 
 ## Platforms
 
@@ -40,6 +39,9 @@ curl -sSfL https://raw.githubusercontent.com/alecerf/devstrap/trunk/install.sh |
 ## Usage
 
 ```sh
+# Fetch the tool index (required on first run)
+devstrap index update
+
 # Check for available upgrades
 devstrap update
 
@@ -56,11 +58,28 @@ devstrap list
 devstrap version
 ```
 
+### Index Management
+
+```sh
+# Update the local index cache from the remote repository
+devstrap index update
+
+# List all tools available in the index
+devstrap index list
+
+# Search for tools by name or description
+devstrap index search lint
+```
+
 Tools are installed into `~/Workspace/<tool>/` by default. Use the `--base` flag to change the base directory:
 
 ```sh
 devstrap upgrade --base ~/dev
 ```
+
+## Adding a New Tool
+
+To add a new tool to devstrap, create a JSON definition file in the [devstrap-index](https://github.com/alecerf/devstrap-index) repository. See the existing definitions for examples.
 
 ## License
 

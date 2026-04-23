@@ -24,11 +24,6 @@ func DetectPlatform() Platform {
 	}
 }
 
-// FileSuffix returns the filename suffix for downloads, e.g. "darwin-arm64".
-func (p Platform) FileSuffix() string {
-	return fmt.Sprintf("%s-%s", p.OS, p.Arch)
-}
-
 // Result represents the outcome of a single tool operation.
 type Result struct {
 	Name    string

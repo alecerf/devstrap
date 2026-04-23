@@ -24,8 +24,9 @@ func newRootCmd() *cobra.Command {
 		Short: "Bootstrap and update development tools",
 		Long: `devstrap keeps your development tools up-to-date.
 
-It can install and upgrade Go, Node.js, golangci-lint, and more.
-Run "devstrap update" to see what needs upgrading,
+It can install and upgrade tools defined in the devstrap index.
+Run "devstrap index update" to fetch the latest tool definitions,
+"devstrap update" to see what needs upgrading,
 or "devstrap upgrade" to bring everything to the latest version.`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
@@ -38,6 +39,7 @@ or "devstrap upgrade" to bring everything to the latest version.`,
 		newUpgradeCmd(),
 		newListCmd(),
 		newVersionCmd(),
+		newIndexCmd(),
 	)
 
 	return root

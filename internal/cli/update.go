@@ -27,7 +27,11 @@ func newUpdateCmd() *cobra.Command {
 
 func runUpdate(_ *cobra.Command, args []string) error {
 	plat := tool.DetectPlatform()
-	order, all := BuildTools(baseDir, plat)
+
+	order, all, err := BuildTools(baseDir, plat)
+	if err != nil {
+		return err
+	}
 
 	if len(args) > 0 {
 		for _, name := range args {
