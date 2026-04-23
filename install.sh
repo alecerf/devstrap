@@ -3,10 +3,10 @@
 #
 # Usage:
 #   curl -sSfL https://raw.githubusercontent.com/alecerf/devstrap/trunk/install.sh | sh
-#   curl -sSfL https://raw.githubusercontent.com/alecerf/devstrap/trunk/install.sh | INSTALL_DIR=~/.local sh
+#   curl -sSfL https://raw.githubusercontent.com/alecerf/devstrap/trunk/install.sh | INSTALL_DIR=/usr/local sudo sh
 #
 # Environment variables:
-#   INSTALL_DIR  — base directory (binary goes into $INSTALL_DIR/bin). Default: /usr/local
+#   INSTALL_DIR  — base directory (binary goes into $INSTALL_DIR/bin). Default: ~/.local
 #   VERSION      — specific version to install (e.g. "1.0.0"). Default: latest
 
 set -eu
@@ -14,7 +14,7 @@ set -eu
 REPO="alecerf/devstrap"
 GITHUB_API="${GITHUB_API:-https://api.github.com/repos/${REPO}}"
 GITHUB_DL="${GITHUB_DL:-https://github.com/${REPO}/releases/download}"
-INSTALL_DIR="${INSTALL_DIR:-/usr/local}"
+INSTALL_DIR="${INSTALL_DIR:-${HOME}/.local}"
 BIN_DIR="${INSTALL_DIR}/bin"
 
 log() { printf '%s\n' "$@"; }
@@ -79,6 +79,11 @@ download_and_verify() {
     install -m 755 "${TMPDIR}/devstrap" "${BIN_DIR}/devstrap"
 
     log "Installed devstrap v${VERSION} to ${BIN_DIR}/devstrap"
+
+    case ":${PATH}:" in
+        *":${BIN_DIR}:"*) ;;
+        *) log "" && log "Add ${BIN_DIR} to your PATH:" && log "  export PATH=\"${BIN_DIR}:\$PATH\"" ;;
+    esac
 }
 
 main() {

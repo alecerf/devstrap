@@ -26,11 +26,11 @@ Run `devstrap index list` to see all available tools after updating the index.
 curl -sSfL https://raw.githubusercontent.com/alecerf/devstrap/trunk/install.sh | sh
 ```
 
-By default the binary is installed to `/usr/local/bin`. Override with environment variables:
+By default the binary is installed to `~/.local/bin`. Override with environment variables:
 
 ```sh
-# Install to ~/.local/bin
-curl -sSfL https://raw.githubusercontent.com/alecerf/devstrap/trunk/install.sh | INSTALL_DIR=~/.local sh
+# Install to /usr/local/bin (requires sudo)
+curl -sSfL https://raw.githubusercontent.com/alecerf/devstrap/trunk/install.sh | INSTALL_DIR=/usr/local sudo sh
 
 # Install a specific version
 curl -sSfL https://raw.githubusercontent.com/alecerf/devstrap/trunk/install.sh | VERSION=0.1.0 sh
