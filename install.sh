@@ -44,7 +44,7 @@ detect_platform() {
 fetch_latest_version() {
     curl -sSfL "${GITHUB_API}/releases/latest" |
         grep '"tag_name"' |
-        sed -E 's/.*"tag_name":\s*"v?([^"]+)".*/\1/'
+        sed -E 's/.*"tag_name":[[:space:]]*"v?([^"]+)".*/\1/'
 }
 
 download_and_verify() {
