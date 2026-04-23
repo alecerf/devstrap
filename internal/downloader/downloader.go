@@ -85,31 +85,3 @@ func Download(ctx context.Context, url, dst string) (err error) {
 
 	return nil
 }
-
-// DownloadAndVerify downloads an archive and its checksum file, then verifies
-// the archive's SHA-256 checksum.
-func DownloadAndVerify(
-	ctx context.Context, status func(string),
-	baseURL, filename, checksumFile, tmp, archive string,
-) error {
-	err := Download(ctx, baseURL+"/"+filename, archive)
-	if err != nil {
-		return err
-	}
-
-	csFile := filepath.Join(tmp, checksumFile)
-
-	err = Download(ctx, baseURL+"/"+checksumFile, csFile)
-	if err != nil {
-		return err
-	}
-
-	status("verifying checksum...")
-
-	expectedSHA, err := ExtractChecksum(csFile, filename)
-	if err != nil {
-		return err
-	}
-
-	return VerifyChecksum(archive, expectedSHA)
-}

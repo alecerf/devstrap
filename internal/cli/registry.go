@@ -1,45 +1,44 @@
 package cli
 
 import (
+	"fmt"
+
+	"github.com/alecerf/devstrap/internal/index"
 	"github.com/alecerf/devstrap/internal/tool"
-	"github.com/alecerf/devstrap/internal/tool/github"
-	"github.com/alecerf/devstrap/internal/tool/golang"
-	"github.com/alecerf/devstrap/internal/tool/node"
 )
 
-// entry pairs a tool name with a constructor.
-type entry struct {
-	name    string
-	newTool func(baseDir string, plat tool.Platform) tool.Tool
-}
-
-// registry defines the tools and their install order.
-var registry = []entry{
-	{"go", golang.New},
-	{"node", node.New},
-	{"golangci-lint", github.NewGolangCI},
-}
-
-// ToolNames returns the registered tool names in order.
+// ToolNames returns the tool names from the loaded index.
 func ToolNames() []string {
-	names := make([]string, len(registry))
-	for i, r := range registry {
-		names[i] = r.name
+	idx, err := index.Load()
+	if err != nil {
+		return nil
 	}
 
-	return names
+	return idx.ToolNames()
 }
 
-// BuildTools constructs all Tool instances keyed by name and returns the
-// ordered list of names alongside the map.
-func BuildTools(baseDir string, plat tool.Platform) ([]string, map[string]tool.Tool) {
-	names := make([]string, len(registry))
-	tools := make(map[string]tool.Tool, len(registry))
-
-	for i, r := range registry {
-		names[i] = r.name
-		tools[r.name] = r.newTool(baseDir, plat)
+// BuildTools constructs all Tool instances from the index, keyed by name.
+// Returns the ordered list of names alongside the map.
+func BuildTools(baseDir string, plat tool.Platform) ([]string, map[string]tool.Tool, error) {
+	idx, err := index.Load()
+	if err != nil {
+		return nil, nil, fmt.Errorf("load index: %w", err)
 	}
 
-	return names, tools
+	names := make([]string, 0, len(idx.Definitions))
+	tools := make(map[string]tool.Tool, len(idx.Definitions))
+
+	for _, def := range idx.Definitions {
+		t, err := index.NewTool(def, baseDir, plat)
+		if err != nil {
+			fmt.Printf("  %s skipping %s: %v\n", yellowBold("•"), def.Name, err)
+
+			continue
+		}
+
+		names = append(names, def.Name)
+		tools[def.Name] = t
+	}
+
+	return names, tools, nil
 }
