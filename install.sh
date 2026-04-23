@@ -43,8 +43,10 @@ detect_platform() {
 
 fetch_latest_version() {
     curl -sSfL "${GITHUB_API}/releases/latest" |
-        grep '"tag_name"' |
-        sed -E 's/.*"tag_name":[[:space:]]*"v?([^"]+)".*/\1/'
+        grep -o '"tag_name": *"[^"]*"' |
+        head -1 |
+        cut -d'"' -f4 |
+        sed 's/^v//'
 }
 
 download_and_verify() {
@@ -67,7 +69,7 @@ download_and_verify() {
     EXPECTED="$(grep "${ARCHIVE}" "${TMPDIR}/${CHECKSUMS}" | awk '{print $1}')"
     [ -z "${EXPECTED}" ] && fail "checksum not found for ${ARCHIVE}"
 
-    ACTUAL="$(${SHA_CMD} "${TMPDIR}/${ARCHIVE}" | awk '{print $1}')"
+    ACTUAL="$(sha_hash "${TMPDIR}/${ARCHIVE}" | awk '{print $1}')"
     [ "${ACTUAL}" != "${EXPECTED}" ] && fail "checksum mismatch: expected ${EXPECTED}, got ${ACTUAL}"
 
     log "Extracting..."
@@ -84,9 +86,9 @@ main() {
     need_cmd tar
 
     if command -v shasum >/dev/null 2>&1; then
-        SHA_CMD="shasum -a 256"
+        sha_hash() { shasum -a 256 "$@"; }
     elif command -v sha256sum >/dev/null 2>&1; then
-        SHA_CMD="sha256sum"
+        sha_hash() { sha256sum "$@"; }
     else
         fail "required command not found: shasum or sha256sum"
     fi
