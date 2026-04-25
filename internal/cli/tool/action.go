@@ -17,14 +17,14 @@ type runCounts struct {
 }
 
 // runAction is the shared implementation for install and upgrade commands.
-func runAction(baseDir string, args []string, version, label string) error {
+func runAction(paths registry.Paths, args []string, version, label string) error {
 	version = strings.TrimPrefix(version, "v")
 
 	if version != "" && len(args) != 1 {
 		return errVersionRequiresSingleTool
 	}
 
-	order, all, err := resolveTools(baseDir, args)
+	order, all, err := resolveTools(paths, args)
 	if err != nil {
 		return err
 	}

@@ -1,10 +1,13 @@
 // Package tool implements the "devstrap tool" command and its subcommands.
 package tool
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/alecerf/devstrap/internal/registry"
+	"github.com/spf13/cobra"
+)
 
 // NewCmd returns the "tool" parent command with its subcommands registered.
-func NewCmd(baseDir *string) *cobra.Command {
+func NewCmd(paths *registry.Paths) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "tool",
 		Short: "Manage development tools",
@@ -12,10 +15,10 @@ func NewCmd(baseDir *string) *cobra.Command {
 	}
 
 	cmd.AddCommand(
-		newInstallCmd(baseDir),
-		newUpdateCmd(baseDir),
-		newUpgradeCmd(baseDir),
-		newListCmd(baseDir),
+		newInstallCmd(paths),
+		newUpdateCmd(paths),
+		newUpgradeCmd(paths),
+		newListCmd(paths),
 	)
 
 	return cmd

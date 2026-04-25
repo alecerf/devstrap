@@ -36,5 +36,5 @@ Add a JSON definition file to the [devstrap-index](https://github.com/alecerf/de
 - Errors are defined as package-level sentinel `var`s and wrapped with `fmt.Errorf` + `%w`.
 - Versions are plain semver strings without a `v` prefix throughout the codebase; the `v` is stripped at API boundaries.
 - Downloads always verify SHA-256 checksums before extraction.
-- Tools install into `<baseDir>/<tool>/` (default `~/Workspace`). Standalone binaries go into `<baseDir>/bin/`.
-- The tool index is cached at `~/.devstrap/index/` and must be manually updated with `devstrap index update`.
+- Tools install into `<dataDir>/<tool>/` (default `~/.local/share/devstrap`). Standalone binaries go into `<binDir>/` (default `~/.local/bin`). Both respect XDG environment variables.
+- The tool index is cached at `$XDG_CACHE_HOME/devstrap/` (default `~/.cache/devstrap`) and must be manually updated with `devstrap index update`.

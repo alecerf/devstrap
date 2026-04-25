@@ -71,11 +71,13 @@ devstrap index list
 devstrap index search lint
 ```
 
-Tools are installed into `~/Workspace/<tool>/` by default. Use the `--base` flag to change the base directory:
+Tools are installed into `~/.local/share/devstrap/<tool>/` by default, and standalone binaries go to `~/.local/bin/`. Use the `--data-dir` and `--bin-dir` flags to change these directories:
 
 ```sh
-devstrap tool upgrade --base ~/dev
+devstrap tool upgrade --data-dir ~/dev --bin-dir ~/dev/bin
 ```
+
+devstrap respects `XDG_DATA_HOME` for the data directory and `XDG_CACHE_HOME` for the index cache.
 
 ## Adding a New Tool
 

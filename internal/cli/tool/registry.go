@@ -19,7 +19,7 @@ func toolNames() []string {
 
 // resolveTools loads all tool definitions, validates the given args (if any),
 // and returns the ordered name list filtered to args.
-func resolveTools(baseDir string, args []string) ([]string, map[string]registry.Tool, error) {
+func resolveTools(paths registry.Paths, args []string) ([]string, map[string]registry.Tool, error) {
 	plat := registry.DetectPlatform()
 
 	idx, err := registry.Load()
@@ -31,7 +31,7 @@ func resolveTools(baseDir string, args []string) ([]string, map[string]registry.
 	tools := make(map[string]registry.Tool, len(idx.Definitions))
 
 	for _, def := range idx.Definitions {
-		t, tErr := registry.NewTool(def, baseDir, plat)
+		t, tErr := registry.NewTool(def, paths, plat)
 		if tErr != nil {
 			fmt.Printf("  %s skipping %s: %v\n", ui.YellowBold("•"), def.Name, tErr)
 

@@ -14,26 +14,26 @@ import (
 
 // installer implements engine.Tool using a declarative Definition.
 type installer struct {
-	def     Definition
-	baseDir string
-	os      string
-	arch    string
+	def   Definition
+	paths Paths
+	os    string
+	arch  string
 }
 
-// NewTool creates a Tool from a Definition, baseDir, and platform.
+// NewTool creates a Tool from a Definition, paths, and platform.
 //
 //nolint:ireturn // factory function
-func NewTool(def Definition, baseDir string, plat Platform) (Tool, error) {
+func NewTool(def Definition, paths Paths, plat Platform) (Tool, error) {
 	mappedOS, mappedArch, err := mapPlatform(plat, def)
 	if err != nil {
 		return nil, err
 	}
 
 	return &installer{
-		def:     def,
-		baseDir: baseDir,
-		os:      mappedOS,
-		arch:    mappedArch,
+		def:   def,
+		paths: paths,
+		os:    mappedOS,
+		arch:  mappedArch,
 	}, nil
 }
 
@@ -85,7 +85,13 @@ func (i *installer) FetchVersion(ctx context.Context, version string) (string, e
 }
 
 func (i *installer) CurrentVersion(ctx context.Context) (string, error) {
-	bin := filepath.Join(i.baseDir, i.def.Detect.Binary)
+	var bin string
+
+	if i.def.Install.Mode == "binary" {
+		bin = filepath.Join(i.paths.BinDir, i.def.Install.BinaryName)
+	} else {
+		bin = filepath.Join(i.paths.DataDir, i.def.Detect.Binary)
+	}
 
 	re, err := regexp.Compile(i.def.Detect.VersionRegex)
 	if err != nil {
@@ -222,7 +228,7 @@ func (i *installer) installDirectory(ctx context.Context, tmp, archiveFile strin
 		return fmt.Errorf("extract archive: %w", err)
 	}
 
-	dest := filepath.Join(i.baseDir, i.def.Install.Dest)
+	dest := filepath.Join(i.paths.DataDir, i.def.Install.Dest)
 	_ = os.RemoveAll(dest)
 
 	err = os.Rename(extractDir, dest)
@@ -245,7 +251,7 @@ func (i *installer) installBinary(ctx context.Context, data TemplateData, tmp, a
 	}
 
 	binaryPath := filepath.Join(tmp, archivePath)
-	destDir := filepath.Join(i.baseDir, i.def.Install.Dest)
+	destDir := i.paths.BinDir
 
 	err = downloader.InstallBinary(binaryPath, destDir, i.def.Install.BinaryName)
 	if err != nil {

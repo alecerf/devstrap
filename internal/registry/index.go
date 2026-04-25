@@ -27,14 +27,19 @@ type Index struct {
 	Definitions []Definition
 }
 
-// CacheDir returns the default index cache directory (~/.devstrap/index).
+// CacheDir returns the default index cache directory.
+// It respects $XDG_CACHE_HOME, falling back to ~/.cache/devstrap.
 func CacheDir() (string, error) {
+	if dir := os.Getenv("XDG_CACHE_HOME"); dir != "" {
+		return filepath.Join(dir, "devstrap"), nil
+	}
+
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("get home directory: %w", err)
 	}
 
-	return filepath.Join(home, ".devstrap", "index"), nil
+	return filepath.Join(home, ".cache", "devstrap"), nil
 }
 
 // Load reads the index from the local cache directory.

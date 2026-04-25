@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newUpdateCmd(baseDir *string) *cobra.Command {
+func newUpdateCmd(paths *registry.Paths) *cobra.Command {
 	long := "Update fetches the latest versions of the specified tools" +
 		" (or all if none given)\nand reports whether upgrades are" +
 		" available.\n\nAvailable tools: " +
@@ -23,13 +23,13 @@ func newUpdateCmd(baseDir *string) *cobra.Command {
 		Long:      long,
 		ValidArgs: toolNames(),
 		RunE: func(_ *cobra.Command, args []string) error {
-			return runUpdate(*baseDir, args)
+			return runUpdate(*paths, args)
 		},
 	}
 }
 
-func runUpdate(baseDir string, args []string) error {
-	order, all, err := resolveTools(baseDir, args)
+func runUpdate(paths registry.Paths, args []string) error {
+	order, all, err := resolveTools(paths, args)
 	if err != nil {
 		return err
 	}

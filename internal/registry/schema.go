@@ -15,6 +15,17 @@ type Tool interface {
 	Install(ctx context.Context, status func(string), version, extra string) error
 }
 
+// Paths holds the resolved installation directories.
+type Paths struct {
+	// DataDir is the base directory for directory-mode tool installations
+	// (e.g. ~/.local/share/devstrap).
+	DataDir string
+
+	// BinDir is the directory for standalone binary installations
+	// (e.g. ~/.local/bin).
+	BinDir string
+}
+
 // Platform holds the detected OS and architecture.
 type Platform struct {
 	OS   string
@@ -121,7 +132,8 @@ type Install struct {
 	// (extract a single binary).
 	Mode string `json:"mode"`
 
-	// Dest is the installation directory relative to baseDir (e.g. "go", "bin").
+	// Dest is the installation directory relative to DataDir for directory-mode
+	// tools (e.g. "go"). Ignored for binary-mode tools (BinDir is used instead).
 	Dest string `json:"dest"`
 
 	// StripComponents removes leading path components during extraction
@@ -138,7 +150,9 @@ type Install struct {
 
 // Detect describes how to detect the currently installed version.
 type Detect struct {
-	// Binary is the path to the binary relative to baseDir (e.g. "go/bin/go").
+	// Binary is the path to the binary relative to DataDir (e.g. "go/bin/go").
+	// Only used for directory-mode tools; binary-mode tools resolve the
+	// detect path from BinDir and Install.BinaryName.
 	Binary string `json:"binary"`
 
 	// Args are passed to the binary to get version output.

@@ -3,10 +3,11 @@ package tool
 import (
 	"strings"
 
+	"github.com/alecerf/devstrap/internal/registry"
 	"github.com/spf13/cobra"
 )
 
-func newUpgradeCmd(baseDir *string) *cobra.Command {
+func newUpgradeCmd(paths *registry.Paths) *cobra.Command {
 	var version string
 
 	long := "Upgrade installs or upgrades the specified tools" +
@@ -19,7 +20,7 @@ func newUpgradeCmd(baseDir *string) *cobra.Command {
 		Long:      long,
 		ValidArgs: toolNames(),
 		RunE: func(_ *cobra.Command, args []string) error {
-			return runAction(*baseDir, args, version, "upgraded")
+			return runAction(*paths, args, version, "upgraded")
 		},
 	}
 

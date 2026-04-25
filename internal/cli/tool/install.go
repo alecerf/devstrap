@@ -3,10 +3,11 @@ package tool
 import (
 	"strings"
 
+	"github.com/alecerf/devstrap/internal/registry"
 	"github.com/spf13/cobra"
 )
 
-func newInstallCmd(baseDir *string) *cobra.Command {
+func newInstallCmd(paths *registry.Paths) *cobra.Command {
 	var version string
 
 	cmd := &cobra.Command{
@@ -17,7 +18,7 @@ func newInstallCmd(baseDir *string) *cobra.Command {
 		Args:      cobra.MinimumNArgs(1),
 		ValidArgs: toolNames(),
 		RunE: func(_ *cobra.Command, args []string) error {
-			return runAction(*baseDir, args, version, "installed")
+			return runAction(*paths, args, version, "installed")
 		},
 	}
 

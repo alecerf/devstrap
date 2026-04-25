@@ -5,21 +5,22 @@ import (
 	"fmt"
 
 	"github.com/alecerf/devstrap/internal/cli/ui"
+	"github.com/alecerf/devstrap/internal/registry"
 	"github.com/spf13/cobra"
 )
 
-func newListCmd(baseDir *string) *cobra.Command {
+func newListCmd(paths *registry.Paths) *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
 		Short: "List available tools and their installed versions",
 		Run: func(_ *cobra.Command, _ []string) {
-			runList(*baseDir)
+			runList(*paths)
 		},
 	}
 }
 
-func runList(baseDir string) {
-	order, all, err := resolveTools(baseDir, nil)
+func runList(paths registry.Paths) {
+	order, all, err := resolveTools(paths, nil)
 	if err != nil {
 		fmt.Printf("  %s %v\n", ui.RedBold("✖"), err)
 

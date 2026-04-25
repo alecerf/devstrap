@@ -8,19 +8,38 @@ import (
 
 	"github.com/alecerf/devstrap/internal/cli/index"
 	"github.com/alecerf/devstrap/internal/cli/tool"
+	"github.com/alecerf/devstrap/internal/registry"
 	"github.com/spf13/cobra"
 )
 
-var baseDir string
+var paths registry.Paths
 
-func newRootCmd() *cobra.Command {
+// defaultDataDir returns the default data directory for tool installations,
+// respecting $XDG_DATA_HOME (fallback ~/.local/share/devstrap).
+func defaultDataDir() string {
+	if dir := os.Getenv("XDG_DATA_HOME"); dir != "" {
+		return filepath.Join(dir, "devstrap")
+	}
+
 	home, err := os.UserHomeDir()
 	if err != nil {
 		home = "."
 	}
 
-	defaultBase := filepath.Join(home, "Workspace")
+	return filepath.Join(home, ".local", "share", "devstrap")
+}
 
+// defaultBinDir returns the default directory for standalone binaries (~/.local/bin).
+func defaultBinDir() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		home = "."
+	}
+
+	return filepath.Join(home, ".local", "bin")
+}
+
+func newRootCmd() *cobra.Command {
 	root := &cobra.Command{
 		Use:   "devstrap",
 		Short: "Bootstrap and update development tools",
@@ -34,10 +53,11 @@ or "devstrap tool upgrade" to bring everything to the latest version.`,
 		SilenceErrors: true,
 	}
 
-	root.PersistentFlags().StringVar(&baseDir, "base", defaultBase, "base directory for installations")
+	root.PersistentFlags().StringVar(&paths.DataDir, "data-dir", defaultDataDir(), "directory for tool installations")
+	root.PersistentFlags().StringVar(&paths.BinDir, "bin-dir", defaultBinDir(), "directory for standalone binaries")
 
 	root.AddCommand(
-		tool.NewCmd(&baseDir),
+		tool.NewCmd(&paths),
 		newVersionCmd(),
 		index.NewCmd(),
 	)
