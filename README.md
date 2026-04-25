@@ -43,16 +43,16 @@ curl -sSfL https://raw.githubusercontent.com/alecerf/devstrap/trunk/install.sh |
 devstrap index update
 
 # Check for available upgrades
-devstrap update
+devstrap tool update
 
 # Upgrade all tools to their latest versions
-devstrap upgrade
+devstrap tool upgrade
 
 # Upgrade specific tools only
-devstrap upgrade go node
+devstrap tool upgrade go node
 
 # List installed tools and their versions
-devstrap list
+devstrap tool list
 
 # Print devstrap version
 devstrap version
@@ -74,7 +74,7 @@ devstrap index search lint
 Tools are installed into `~/Workspace/<tool>/` by default. Use the `--base` flag to change the base directory:
 
 ```sh
-devstrap upgrade --base ~/dev
+devstrap tool upgrade --base ~/dev
 ```
 
 ## Adding a New Tool

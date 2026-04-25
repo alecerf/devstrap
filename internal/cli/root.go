@@ -26,8 +26,8 @@ func newRootCmd() *cobra.Command {
 
 It can install and upgrade tools defined in the devstrap index.
 Run "devstrap index update" to fetch the latest tool definitions,
-"devstrap update" to see what needs upgrading,
-or "devstrap upgrade" to bring everything to the latest version.`,
+"devstrap tool update" to see what needs upgrading,
+or "devstrap tool upgrade" to bring everything to the latest version.`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
@@ -35,9 +35,7 @@ or "devstrap upgrade" to bring everything to the latest version.`,
 	root.PersistentFlags().StringVar(&baseDir, "base", defaultBase, "base directory for installations")
 
 	root.AddCommand(
-		newUpdateCmd(),
-		newUpgradeCmd(),
-		newListCmd(),
+		newToolCmd(),
 		newVersionCmd(),
 		newIndexCmd(),
 	)
