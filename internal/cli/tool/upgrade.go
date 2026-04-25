@@ -1,4 +1,4 @@
-package cli
+package tool
 
 import (
 	"context"
@@ -6,28 +6,31 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alecerf/devstrap/internal/tool"
+	"github.com/alecerf/devstrap/internal/cli/ui"
+	"github.com/alecerf/devstrap/internal/engine"
 	"github.com/spf13/cobra"
 )
 
-func newUpgradeCmd() *cobra.Command {
+func newUpgradeCmd(baseDir *string) *cobra.Command {
 	long := "Upgrade installs or upgrades the specified tools" +
 		" (or all tools if none given).\n\nAvailable tools: " +
-		strings.Join(ToolNames(), ", ")
+		strings.Join(toolNames(), ", ")
 
 	return &cobra.Command{
 		Use:       "upgrade [tools...]",
 		Short:     "Upgrade development tools to their latest versions",
 		Long:      long,
-		ValidArgs: ToolNames(),
-		RunE:      runUpgrade,
+		ValidArgs: toolNames(),
+		RunE: func(_ *cobra.Command, args []string) error {
+			return runUpgrade(*baseDir, args)
+		},
 	}
 }
 
-func runUpgrade(_ *cobra.Command, args []string) error {
-	plat := tool.DetectPlatform()
+func runUpgrade(baseDir string, args []string) error {
+	plat := engine.DetectPlatform()
 
-	order, all, err := BuildTools(baseDir, plat)
+	order, all, err := buildTools(baseDir, plat)
 	if err != nil {
 		return err
 	}
@@ -43,39 +46,39 @@ func runUpgrade(_ *cobra.Command, args []string) error {
 	}
 
 	ctx := context.Background()
-	p := newPrinter(order)
+	p := ui.NewPrinter(order)
 	start := time.Now()
 
 	var upgraded, upToDate, failed int
 
 	for i, name := range order {
 		prefix := fmt.Sprintf("%s %s",
-			dim(fmt.Sprintf("[%d/%d]", i+1, len(order))),
-			bold(p.pad(name)),
+			ui.Dim(fmt.Sprintf("[%d/%d]", i+1, len(order))),
+			ui.Bold(p.Pad(name)),
 		)
-		sp := newSpinner(prefix + "  checking...")
+		sp := ui.NewSpinner(prefix + "  checking...")
 
 		status := func(msg string) {
-			sp.update(prefix + "  " + msg)
+			sp.Update(prefix + "  " + msg)
 		}
 
-		res := tool.Run(ctx, all[name], status)
-		sp.stop()
+		res := engine.Run(ctx, all[name], status)
+		sp.Stop()
 
 		switch {
 		case res.Err != nil:
-			p.printError(name, res.Err)
+			p.PrintError(name, res.Err)
 			failed++
 		case res.Status == "up-to-date":
-			p.printSuccess(name, fmt.Sprintf("up-to-date (%s)", res.Version))
+			p.PrintSuccess(name, fmt.Sprintf("up-to-date (%s)", res.Version))
 			upToDate++
 		default:
-			p.printSuccess(name, "installed "+res.Version)
+			p.PrintSuccess(name, "installed "+res.Version)
 			upgraded++
 		}
 	}
 
-	p.printSummary(len(order), "upgraded", upgraded, upToDate, failed, time.Since(start))
+	p.PrintSummary(len(order), "upgraded", upgraded, upToDate, failed, time.Since(start))
 
 	if failed > 0 {
 		return errToolsFailed

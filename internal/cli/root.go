@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/alecerf/devstrap/internal/cli/index"
+	"github.com/alecerf/devstrap/internal/cli/tool"
 	"github.com/spf13/cobra"
 )
 
@@ -35,9 +37,9 @@ or "devstrap tool upgrade" to bring everything to the latest version.`,
 	root.PersistentFlags().StringVar(&baseDir, "base", defaultBase, "base directory for installations")
 
 	root.AddCommand(
-		newToolCmd(),
+		tool.NewCmd(&baseDir),
 		newVersionCmd(),
-		newIndexCmd(),
+		index.NewCmd(),
 	)
 
 	return root

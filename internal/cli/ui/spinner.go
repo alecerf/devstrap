@@ -1,4 +1,4 @@
-package cli
+package ui
 
 import (
 	"fmt"
@@ -9,32 +9,35 @@ import (
 	"github.com/mattn/go-isatty"
 )
 
-var interactive = isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd())
+// Interactive reports whether stdout is a terminal.
+var Interactive = isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd())
 
 var frames = [...]string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 
-type spinner struct {
+// Spinner displays an animated progress indicator.
+type Spinner struct {
 	mu     sync.Mutex
 	msg    string
 	stopCh chan struct{}
 	doneCh chan struct{}
 }
 
-func newSpinner(msg string) *spinner {
-	s := &spinner{
+// NewSpinner starts a new animated spinner with the given message.
+func NewSpinner(msg string) *Spinner {
+	s := &Spinner{
 		msg:    msg,
 		stopCh: make(chan struct{}),
 		doneCh: make(chan struct{}),
 	}
 
-	if interactive {
+	if Interactive {
 		go s.run()
 	}
 
 	return s
 }
 
-func (s *spinner) run() {
+func (s *Spinner) run() {
 	defer close(s.doneCh)
 
 	idx := 0
@@ -53,21 +56,23 @@ func (s *spinner) run() {
 			msg := s.msg
 			s.mu.Unlock()
 
-			fmt.Printf("\r  %s %s\033[K", yellowBold(frames[idx]), msg)
+			fmt.Printf("\r  %s %s\033[K", YellowBold(frames[idx]), msg)
 
 			idx = (idx + 1) % len(frames)
 		}
 	}
 }
 
-func (s *spinner) update(msg string) {
+// Update changes the spinner message.
+func (s *Spinner) Update(msg string) {
 	s.mu.Lock()
 	s.msg = msg
 	s.mu.Unlock()
 }
 
-func (s *spinner) stop() {
-	if !interactive {
+// Stop halts the spinner animation.
+func (s *Spinner) Stop() {
+	if !Interactive {
 		return
 	}
 

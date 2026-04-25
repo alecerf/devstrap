@@ -1,5 +1,5 @@
-// Package tool defines the Tool interface and orchestration for installers.
-package tool
+// Package engine defines the Tool interface and orchestration for installers.
+package engine
 
 import (
 	"context"

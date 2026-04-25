@@ -1,8 +1,8 @@
-// Package index implements a declarative tool index for devstrap.
+// Package registry implements a declarative tool index for devstrap.
 // Tool definitions are JSON files fetched from a remote repository and cached
 // locally. Each definition describes the full installation pipeline: version
 // discovery, download, checksum verification, and installation.
-package index
+package registry
 
 // Definition is the top-level structure of a tool definition JSON file.
 type Definition struct {
