@@ -69,6 +69,22 @@ func (i *installer) FetchLatest(ctx context.Context) (string, string, error) {
 	return result.Version, string(extra), nil
 }
 
+func (i *installer) FetchVersion(ctx context.Context, version string) (string, error) {
+	data := i.templateData()
+
+	result, err := fetchVersion(ctx, i.def, data, version)
+	if err != nil {
+		return "", err
+	}
+
+	extra, err := json.Marshal(result)
+	if err != nil {
+		return "", fmt.Errorf("marshal fetch result: %w", err)
+	}
+
+	return string(extra), nil
+}
+
 func (i *installer) CurrentVersion(ctx context.Context) (string, error) {
 	bin := filepath.Join(i.baseDir, i.def.Detect.Binary)
 
@@ -154,7 +170,12 @@ func (i *installer) verifyChecksum(
 	if result.Checksum != "" {
 		status("verifying checksum...")
 
-		return fmt.Errorf("verify checksum: %w", downloader.VerifyChecksum(archiveFile, result.Checksum))
+		err := downloader.VerifyChecksum(archiveFile, result.Checksum)
+		if err != nil {
+			return fmt.Errorf("verify checksum: %w", err)
+		}
+
+		return nil
 	}
 
 	// Separate checksum file.

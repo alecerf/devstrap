@@ -29,6 +29,18 @@ func fetchLatest(ctx context.Context, def Definition, data TemplateData) (fetchR
 	}
 }
 
+// fetchVersion discovers install metadata for a specific version.
+func fetchVersion(ctx context.Context, def Definition, data TemplateData, version string) (fetchResult, error) {
+	switch def.Source.Type {
+	case "json_api":
+		return fetchVersionFromJSONAPI(ctx, def, data, version)
+	case "github_release":
+		return fetchVersionFromGitHubRelease(ctx, def, version)
+	default:
+		return fetchResult{}, fmt.Errorf("%w: %s", errUnsupportedSource, def.Source.Type)
+	}
+}
+
 // fetchFromJSONAPI fetches a JSON API endpoint and extracts the version
 // (and optionally a file match with checksum).
 func fetchFromJSONAPI(ctx context.Context, def Definition, data TemplateData) (fetchResult, error) {
@@ -105,13 +117,6 @@ type fileMatchResult struct {
 // matchFile searches a JSON array for a file entry whose filename contains
 // the rendered pattern, and extracts the checksum field.
 func matchFile(root any, fm *FileMatch, data TemplateData, version string) (fileMatchResult, error) {
-	data.Version = version
-
-	pattern, err := renderTemplate(fm.FilenameContains, data)
-	if err != nil {
-		return fileMatchResult{}, fmt.Errorf("render filename pattern: %w", err)
-	}
-
 	listRaw, err := navigatePath(root, fm.ListPath)
 	if err != nil {
 		return fileMatchResult{}, fmt.Errorf("navigate to file list: %w", err)
@@ -120,6 +125,43 @@ func matchFile(root any, fm *FileMatch, data TemplateData, version string) (file
 	list, ok := listRaw.([]any)
 	if !ok {
 		return fileMatchResult{}, fmt.Errorf("%w: %q is not an array", errPathNavigation, fm.ListPath)
+	}
+
+	return searchFileList(list, fm, data, version)
+}
+
+// matchFileInEntry is like matchFile but operates on a single array entry
+// rather than the full API response. It extracts the field portion of
+// ListPath (e.g. ".files" from "[0].files") to navigate within the entry.
+func matchFileInEntry(
+	entry any, fm *FileMatch, data TemplateData, version string,
+) (fileMatchResult, error) {
+	_, fieldPath, err := splitVersionPath(fm.ListPath)
+	if err != nil {
+		return fileMatchResult{}, fmt.Errorf("parse list path: %w", err)
+	}
+
+	listRaw, err := navigatePath(entry, fieldPath)
+	if err != nil {
+		return fileMatchResult{}, fmt.Errorf("navigate to file list: %w", err)
+	}
+
+	list, ok := listRaw.([]any)
+	if !ok {
+		return fileMatchResult{}, fmt.Errorf("%w: %q is not an array", errPathNavigation, fieldPath)
+	}
+
+	return searchFileList(list, fm, data, version)
+}
+
+func searchFileList(
+	list []any, fm *FileMatch, data TemplateData, version string,
+) (fileMatchResult, error) {
+	data.Version = version
+
+	pattern, err := renderTemplate(fm.FilenameContains, data)
+	if err != nil {
+		return fileMatchResult{}, fmt.Errorf("render filename pattern: %w", err)
 	}
 
 	for _, item := range list {
@@ -223,4 +265,165 @@ func navigateObject(current any, remaining, fullPath string) (any, string, error
 	}
 
 	return val, remaining[dot:], nil
+}
+
+// fetchVersionFromGitHubRelease queries the GitHub releases API for a specific version.
+// It tries the "v"-prefixed tag first, then the plain version string.
+func fetchVersionFromGitHubRelease(ctx context.Context, def Definition, version string) (fetchResult, error) {
+	tags := []string{"v" + version, version}
+
+	for _, tag := range tags {
+		url := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/tags/%s",
+			def.Source.Owner, def.Source.Repo, tag)
+
+		rel, err := downloader.FetchJSON[githubRelease](ctx, url)
+		if err != nil {
+			continue
+		}
+
+		if rel.TagName != "" {
+			return fetchResult{
+				Version: version,
+				Tag:     rel.TagName,
+			}, nil
+		}
+	}
+
+	return fetchResult{}, fmt.Errorf("%w for version %q", errVersionNotFound, version)
+}
+
+// fetchVersionFromJSONAPI fetches the JSON API and searches for a specific version.
+func fetchVersionFromJSONAPI(
+	ctx context.Context, def Definition, data TemplateData, version string,
+) (fetchResult, error) {
+	raw, err := downloader.FetchJSON[json.RawMessage](ctx, def.Source.URL)
+	if err != nil {
+		return fetchResult{}, fmt.Errorf("fetch %s: %w", def.Source.URL, err)
+	}
+
+	var parsed any
+
+	err = json.Unmarshal(raw, &parsed)
+	if err != nil {
+		return fetchResult{}, fmt.Errorf("parse JSON from %s: %w", def.Source.URL, err)
+	}
+
+	entry, err := findVersionEntry(parsed, def.Source.Version, version)
+	if err != nil {
+		// Version not in API response (e.g. older Go releases are excluded
+		// from the default endpoint). Construct the filename from the naming
+		// convention so the download can still proceed.
+		if def.Source.FileMatch != nil {
+			return constructFetchResult(def, data, version)
+		}
+
+		return fetchResult{}, err
+	}
+
+	result := fetchResult{Version: version}
+
+	if def.Source.FileMatch != nil {
+		fm, err := matchFileInEntry(entry, def.Source.FileMatch, data, version)
+		if err != nil {
+			return fetchResult{}, fmt.Errorf("file match: %w", err)
+		}
+
+		result.Filename = fm.filename
+		result.Checksum = fm.checksum
+	}
+
+	return result, nil
+}
+
+// constructFetchResult builds a fetchResult when the requested version is not
+// present in the API response. It synthesises the filename from the tool's
+// naming convention: {strip_prefix}{version}.{rendered filename_contains}.
+// No embedded checksum is available in this case; the separate checksum file
+// is used if the tool definition provides one.
+func constructFetchResult(
+	def Definition, data TemplateData, version string,
+) (fetchResult, error) {
+	data.Version = version
+
+	pattern, err := renderTemplate(def.Source.FileMatch.FilenameContains, data)
+	if err != nil {
+		return fetchResult{}, fmt.Errorf("render filename pattern: %w", err)
+	}
+
+	filename := def.Source.Version.StripPrefix + version + "." + pattern
+
+	return fetchResult{Version: version, Filename: filename}, nil
+}
+
+// findVersionEntry searches a JSON array for an entry matching the requested version.
+// It uses the version path (e.g., "[0].version") to determine the array location
+// and the version field within each element.
+func findVersionEntry(root any, vCfg VersionExtract, version string) (any, error) {
+	arrayPath, fieldPath, err := splitVersionPath(vCfg.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	var arr []any
+
+	if arrayPath == "" {
+		a, ok := root.([]any)
+		if !ok {
+			return nil, fmt.Errorf("%w: root is not an array", errPathNavigation)
+		}
+
+		arr = a
+	} else {
+		raw, err := navigatePath(root, arrayPath)
+		if err != nil {
+			return nil, fmt.Errorf("navigate to array: %w", err)
+		}
+
+		a, ok := raw.([]any)
+		if !ok {
+			return nil, fmt.Errorf("%w: value at %q is not an array", errPathNavigation, arrayPath)
+		}
+
+		arr = a
+	}
+
+	for _, entry := range arr {
+		vRaw, err := navigatePath(entry, fieldPath)
+		if err != nil {
+			continue
+		}
+
+		v, ok := vRaw.(string)
+		if !ok {
+			continue
+		}
+
+		v = strings.TrimPrefix(v, vCfg.StripPrefix)
+		if v == version {
+			return entry, nil
+		}
+	}
+
+	return nil, fmt.Errorf("%w: %q not found in API response", errVersionNotFound, version)
+}
+
+// splitVersionPath splits a version path like "[0].version" into the path
+// to the containing array and the field path within each element.
+//
+// Examples:
+//
+//	"[0].version"            → arrayPath="",          fieldPath=".version"
+//	".releases[0].version"   → arrayPath=".releases", fieldPath=".version"
+func splitVersionPath(path string) (string, string, error) {
+	bracket := strings.Index(path, "[")
+	if bracket == -1 {
+		return "", "", fmt.Errorf("%w: version path %q has no array index", errPathNavigation, path)
+	}
+
+	closeBracket := strings.IndexByte(path[bracket:], ']')
+	if closeBracket == -1 {
+		return "", "", fmt.Errorf("%w: unclosed bracket in version path %q", errPathNavigation, path)
+	}
+
+	return path[:bracket], path[bracket+closeBracket+1:], nil
 }

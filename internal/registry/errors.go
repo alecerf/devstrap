@@ -8,6 +8,7 @@ var (
 	errPathNavigation         = errors.New("cannot navigate JSON path")
 	errNoFileMatch            = errors.New("no file matched")
 	errVersionNotString       = errors.New("version is not a string")
+	errVersionNotFound        = errors.New("version not found")
 	errUnsupportedInstallMode = errors.New("unsupported install mode")
 	errUnsupportedOS          = errors.New("unsupported OS")
 	errUnsupportedArch        = errors.New("unsupported arch")

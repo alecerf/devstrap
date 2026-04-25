@@ -45,6 +45,7 @@ type CheckInfo struct {
 type Tool interface {
 	Name() string
 	FetchLatest(ctx context.Context) (version, extra string, err error)
+	FetchVersion(ctx context.Context, version string) (extra string, err error)
 	CurrentVersion(ctx context.Context) (string, error)
 	Install(ctx context.Context, status func(string), version, extra string) error
 }
@@ -93,6 +94,28 @@ func Run(ctx context.Context, t Tool, status func(string)) Result {
 	}
 
 	return Result{Name: t.Name(), Status: "installed", Version: latest}
+}
+
+// RunVersion installs the exact requested version.
+// It always performs the installation because version detection may be
+// unreliable (e.g. Go's GOTOOLCHAIN auto-forwarding reports a different
+// version than the one actually installed on disk).
+func RunVersion(ctx context.Context, t Tool, status func(string), version string) Result {
+	status(fmt.Sprintf("fetching metadata for %s...", version))
+
+	extra, err := t.FetchVersion(ctx, version)
+	if err != nil {
+		return Result{Name: t.Name(), Err: err}
+	}
+
+	status(fmt.Sprintf("installing %s...", version))
+
+	err = t.Install(ctx, status, version, extra)
+	if err != nil {
+		return Result{Name: t.Name(), Err: err}
+	}
+
+	return Result{Name: t.Name(), Status: "installed", Version: version}
 }
 
 // isNewer returns true if latest is a newer semantic version than current.

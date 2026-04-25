@@ -12,7 +12,9 @@ import (
 )
 
 func newInstallCmd(baseDir *string) *cobra.Command {
-	return &cobra.Command{
+	var version string
+
+	cmd := &cobra.Command{
 		Use:   "install <tools...>",
 		Short: "Install one or more development tools",
 		Long: "Install downloads and sets up the specified tools.\n\nAvailable tools: " +
@@ -20,12 +22,22 @@ func newInstallCmd(baseDir *string) *cobra.Command {
 		Args:      cobra.MinimumNArgs(1),
 		ValidArgs: toolNames(),
 		RunE: func(_ *cobra.Command, args []string) error {
-			return runInstall(*baseDir, args)
+			return runInstall(*baseDir, args, version)
 		},
 	}
+
+	cmd.Flags().StringVar(&version, "version", "", "install a specific version instead of the latest")
+
+	return cmd
 }
 
-func runInstall(baseDir string, args []string) error {
+func runInstall(baseDir string, args []string, version string) error {
+	version = strings.TrimPrefix(version, "v")
+
+	if version != "" && len(args) != 1 {
+		return errVersionRequiresSingleTool
+	}
+
 	plat := engine.DetectPlatform()
 
 	order, all, err := buildTools(baseDir, plat)
@@ -43,38 +55,11 @@ func runInstall(baseDir string, args []string) error {
 	p := ui.NewPrinter(args)
 	start := time.Now()
 
-	var installed, upToDate, failed int
+	c := runTools(ctx, args, all, version, p)
 
-	for i, name := range args {
-		prefix := fmt.Sprintf("%s %s",
-			ui.Dim(fmt.Sprintf("[%d/%d]", i+1, len(args))),
-			ui.Bold(p.Pad(name)),
-		)
-		sp := ui.NewSpinner(prefix + "  checking...")
+	p.PrintSummary(len(args), "installed", c.acted, c.upToDate, c.failed, time.Since(start))
 
-		status := func(msg string) {
-			sp.Update(prefix + "  " + msg)
-		}
-
-		res := engine.Run(ctx, all[name], status)
-		sp.Stop()
-
-		switch {
-		case res.Err != nil:
-			p.PrintError(name, res.Err)
-			failed++
-		case res.Status == "up-to-date":
-			p.PrintSuccess(name, fmt.Sprintf("up-to-date (%s)", res.Version))
-			upToDate++
-		default:
-			p.PrintSuccess(name, "installed "+res.Version)
-			installed++
-		}
-	}
-
-	p.PrintSummary(len(args), "installed", installed, upToDate, failed, time.Since(start))
-
-	if failed > 0 {
+	if c.failed > 0 {
 		return errToolsFailed
 	}
 
