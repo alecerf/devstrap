@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/alecerf/devstrap/internal/cli/ui"
-	"github.com/alecerf/devstrap/internal/engine"
+	"github.com/alecerf/devstrap/internal/registry"
 	"github.com/spf13/cobra"
 )
 
@@ -29,21 +29,9 @@ func newUpdateCmd(baseDir *string) *cobra.Command {
 }
 
 func runUpdate(baseDir string, args []string) error {
-	plat := engine.DetectPlatform()
-
-	order, all, err := buildTools(baseDir, plat)
+	order, all, err := resolveTools(baseDir, args)
 	if err != nil {
 		return err
-	}
-
-	if len(args) > 0 {
-		for _, name := range args {
-			if _, ok := all[name]; !ok {
-				return fmt.Errorf("%w: %q (valid: %s)", errUnknownTool, name, strings.Join(order, ", "))
-			}
-		}
-
-		order = args
 	}
 
 	ctx := context.Background()
@@ -53,17 +41,14 @@ func runUpdate(baseDir string, args []string) error {
 	var upToDate, updatable, failed int
 
 	for i, name := range order {
-		prefix := fmt.Sprintf("%s %s",
-			ui.Dim(fmt.Sprintf("[%d/%d]", i+1, len(order))),
-			ui.Bold(p.Pad(name)),
-		)
+		prefix := p.ProgressPrefix(i, len(order), name)
 		sp := ui.NewSpinner(prefix + "  checking...")
 
 		status := func(msg string) {
 			sp.Update(prefix + "  " + msg)
 		}
 
-		info := engine.Check(ctx, all[name], status)
+		info := registry.Check(ctx, all[name], status)
 		sp.Stop()
 
 		switch {

@@ -2,9 +2,9 @@ package tool
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/alecerf/devstrap/internal/cli/ui"
-	"github.com/alecerf/devstrap/internal/engine"
 	"github.com/alecerf/devstrap/internal/registry"
 )
 
@@ -17,25 +17,39 @@ func toolNames() []string {
 	return idx.ToolNames()
 }
 
-func buildTools(baseDir string, plat engine.Platform) ([]string, map[string]engine.Tool, error) {
+// resolveTools loads all tool definitions, validates the given args (if any),
+// and returns the ordered name list filtered to args.
+func resolveTools(baseDir string, args []string) ([]string, map[string]registry.Tool, error) {
+	plat := registry.DetectPlatform()
+
 	idx, err := registry.Load()
 	if err != nil {
 		return nil, nil, fmt.Errorf("load index: %w", err)
 	}
 
 	names := make([]string, 0, len(idx.Definitions))
-	tools := make(map[string]engine.Tool, len(idx.Definitions))
+	tools := make(map[string]registry.Tool, len(idx.Definitions))
 
 	for _, def := range idx.Definitions {
-		t, err := registry.NewTool(def, baseDir, plat)
-		if err != nil {
-			fmt.Printf("  %s skipping %s: %v\n", ui.YellowBold("•"), def.Name, err)
+		t, tErr := registry.NewTool(def, baseDir, plat)
+		if tErr != nil {
+			fmt.Printf("  %s skipping %s: %v\n", ui.YellowBold("•"), def.Name, tErr)
 
 			continue
 		}
 
 		names = append(names, def.Name)
 		tools[def.Name] = t
+	}
+
+	if len(args) > 0 {
+		for _, name := range args {
+			if _, ok := tools[name]; !ok {
+				return nil, nil, fmt.Errorf("%w: %q (valid: %s)", errUnknownTool, name, strings.Join(names, ", "))
+			}
+		}
+
+		names = args
 	}
 
 	return names, tools, nil

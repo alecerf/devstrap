@@ -42,6 +42,14 @@ func (p Printer) Pad(name string) string {
 	return fmt.Sprintf("%-*s", p.width, name)
 }
 
+// ProgressPrefix formats a "[n/m] name" progress prefix.
+func (p Printer) ProgressPrefix(i, total int, name string) string {
+	return fmt.Sprintf("%s %s",
+		Dim(fmt.Sprintf("[%d/%d]", i+1, total)),
+		Bold(p.Pad(name)),
+	)
+}
+
 // PrintSuccess prints a green checkmark line.
 func (p Printer) PrintSuccess(name, msg string) {
 	fmt.Printf("  %s %s  %s\n", GreenBold("✔"), Bold(p.Pad(name)), msg)

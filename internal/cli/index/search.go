@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/alecerf/devstrap/internal/cli/ui"
 	"github.com/alecerf/devstrap/internal/registry"
 	"github.com/spf13/cobra"
 )
@@ -40,21 +39,7 @@ func runSearch(_ *cobra.Command, args []string) error {
 		return nil
 	}
 
-	names := make([]string, len(matches))
-	for i, def := range matches {
-		names[i] = def.Name
-	}
-
-	p := ui.NewPrinter(names)
-
-	for _, def := range matches {
-		desc := def.Description
-		if desc == "" {
-			desc = ui.Dim("no description")
-		}
-
-		fmt.Printf("  %s  %s\n", ui.Bold(p.Pad(def.Name)), desc)
-	}
+	printDefinitions(matches)
 
 	return nil
 }

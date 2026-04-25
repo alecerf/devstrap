@@ -3,7 +3,6 @@ package index
 import (
 	"fmt"
 
-	"github.com/alecerf/devstrap/internal/cli/ui"
 	"github.com/alecerf/devstrap/internal/registry"
 	"github.com/spf13/cobra"
 )
@@ -28,21 +27,7 @@ func runList(_ *cobra.Command, _ []string) error {
 		return nil
 	}
 
-	names := make([]string, len(idx.Definitions))
-	for i, def := range idx.Definitions {
-		names[i] = def.Name
-	}
-
-	p := ui.NewPrinter(names)
-
-	for _, def := range idx.Definitions {
-		desc := def.Description
-		if desc == "" {
-			desc = ui.Dim("no description")
-		}
-
-		fmt.Printf("  %s  %s\n", ui.Bold(p.Pad(def.Name)), desc)
-	}
+	printDefinitions(idx.Definitions)
 
 	return nil
 }

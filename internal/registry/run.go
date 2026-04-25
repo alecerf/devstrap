@@ -1,54 +1,12 @@
-// Package engine defines the Tool interface and orchestration for installers.
-package engine
+package registry
 
 import (
 	"context"
 	"fmt"
 	"os/exec"
-	"runtime"
 
 	"golang.org/x/mod/semver"
 )
-
-// Platform holds the detected OS and architecture.
-type Platform struct {
-	OS   string
-	Arch string
-}
-
-// DetectPlatform returns the current runtime OS and architecture.
-func DetectPlatform() Platform {
-	return Platform{
-		OS:   runtime.GOOS,
-		Arch: runtime.GOARCH,
-	}
-}
-
-// Result represents the outcome of a single tool operation.
-type Result struct {
-	Name    string
-	Status  string // "up-to-date", "installed"
-	Version string
-	Err     error
-}
-
-// CheckInfo holds version information gathered during a scan.
-type CheckInfo struct {
-	Name     string
-	Current  string // empty if not installed
-	Latest   string
-	UpToDate bool
-	Err      error
-}
-
-// Tool is the interface every installer implements.
-type Tool interface {
-	Name() string
-	FetchLatest(ctx context.Context) (version, extra string, err error)
-	FetchVersion(ctx context.Context, version string) (extra string, err error)
-	CurrentVersion(ctx context.Context) (string, error)
-	Install(ctx context.Context, status func(string), version, extra string) error
-}
 
 // Check queries the current and latest versions without installing.
 func Check(ctx context.Context, t Tool, status func(string)) CheckInfo {

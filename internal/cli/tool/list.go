@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/alecerf/devstrap/internal/cli/ui"
-	"github.com/alecerf/devstrap/internal/engine"
 	"github.com/spf13/cobra"
 )
 
@@ -20,9 +19,7 @@ func newListCmd(baseDir *string) *cobra.Command {
 }
 
 func runList(baseDir string) {
-	plat := engine.DetectPlatform()
-
-	order, all, err := buildTools(baseDir, plat)
+	order, all, err := resolveTools(baseDir, nil)
 	if err != nil {
 		fmt.Printf("  %s %v\n", ui.RedBold("✖"), err)
 

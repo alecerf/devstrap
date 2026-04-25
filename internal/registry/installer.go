@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/alecerf/devstrap/internal/downloader"
-	"github.com/alecerf/devstrap/internal/engine"
 )
 
 // installer implements engine.Tool using a declarative Definition.
@@ -21,10 +20,10 @@ type installer struct {
 	arch    string
 }
 
-// NewTool creates an engine.Tool from a Definition, baseDir, and platform.
+// NewTool creates a Tool from a Definition, baseDir, and platform.
 //
 //nolint:ireturn // factory function
-func NewTool(def Definition, baseDir string, plat engine.Platform) (engine.Tool, error) {
+func NewTool(def Definition, baseDir string, plat Platform) (Tool, error) {
 	mappedOS, mappedArch, err := mapPlatform(plat, def)
 	if err != nil {
 		return nil, err
@@ -102,7 +101,7 @@ func (i *installer) CurrentVersion(ctx context.Context) (string, error) {
 		return strings.TrimPrefix(m[1], "v"), nil
 	}
 
-	v, err := engine.RunVersionCmd(ctx, bin, i.def.Detect.Args, parse)
+	v, err := RunVersionCmd(ctx, bin, i.def.Detect.Args, parse)
 	if err != nil {
 		return "", fmt.Errorf("detect %s version: %w", i.def.Name, err)
 	}
