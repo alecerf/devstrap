@@ -12,20 +12,31 @@ import (
 )
 
 func newUpdateCmd(paths *registry.Paths) *cobra.Command {
+	var all bool
+
 	long := "Update fetches the latest versions of the specified tools" +
-		" (or all if none given)\nand reports whether upgrades are" +
+		" and reports whether upgrades are" +
 		" available.\n\nAvailable tools: " +
 		strings.Join(toolNames(), ", ")
 
-	return &cobra.Command{
-		Use:       "update [tools...]",
+	cmd := &cobra.Command{
+		Use:       "update <tools... | --all>",
 		Short:     "Fetch latest versions and report available upgrades",
 		Long:      long,
 		ValidArgs: toolNames(),
 		RunE: func(_ *cobra.Command, args []string) error {
-			return runUpdate(*paths, args)
+			resolved, err := validateAllFlag(all, args)
+			if err != nil {
+				return err
+			}
+
+			return runUpdate(*paths, resolved)
 		},
 	}
+
+	cmd.Flags().BoolVar(&all, "all", false, "check all tools from the index")
+
+	return cmd
 }
 
 func runUpdate(paths registry.Paths, args []string) error {

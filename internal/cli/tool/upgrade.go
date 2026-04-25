@@ -8,23 +8,35 @@ import (
 )
 
 func newUpgradeCmd(paths *registry.Paths) *cobra.Command {
-	var version string
+	var (
+		version string
+		all     bool
+	)
 
-	long := "Upgrade installs or upgrades the specified tools" +
-		" (or all tools if none given).\n\nAvailable tools: " +
+	long := "Upgrade installs or upgrades the specified tools.\n\nAvailable tools: " +
 		strings.Join(toolNames(), ", ")
 
 	cmd := &cobra.Command{
-		Use:       "upgrade [tools...]",
+		Use:       "upgrade <tools... | --all>",
 		Short:     "Upgrade development tools to their latest versions",
 		Long:      long,
 		ValidArgs: toolNames(),
 		RunE: func(_ *cobra.Command, args []string) error {
-			return runAction(*paths, args, version, "upgraded")
+			if all && version != "" {
+				return errAllAndVersionConflict
+			}
+
+			resolved, err := validateAllFlag(all, args)
+			if err != nil {
+				return err
+			}
+
+			return runAction(*paths, resolved, version, "upgraded")
 		},
 	}
 
 	cmd.Flags().StringVar(&version, "version", "", "upgrade to a specific version instead of the latest")
+	cmd.Flags().BoolVar(&all, "all", false, "upgrade all tools from the index")
 
 	return cmd
 }

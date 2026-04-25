@@ -231,6 +231,11 @@ func (i *installer) installDirectory(ctx context.Context, tmp, archiveFile strin
 	dest := filepath.Join(i.paths.DataDir, i.def.Install.Dest)
 	_ = os.RemoveAll(dest)
 
+	err = os.MkdirAll(filepath.Dir(dest), 0o750)
+	if err != nil {
+		return fmt.Errorf("create parent dir: %w", err)
+	}
+
 	err = os.Rename(extractDir, dest)
 	if err != nil {
 		return fmt.Errorf("rename to %s: %w", dest, err)
