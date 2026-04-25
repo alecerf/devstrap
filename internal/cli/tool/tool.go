@@ -16,8 +16,6 @@ func NewCmd(paths *registry.Paths) *cobra.Command {
 
 	cmd.AddCommand(
 		newInstallCmd(paths),
-		newUpdateCmd(paths),
-		newUpgradeCmd(paths),
 		newListCmd(paths),
 	)
 

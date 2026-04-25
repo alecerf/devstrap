@@ -42,14 +42,17 @@ curl -sSfL https://raw.githubusercontent.com/alecerf/devstrap/trunk/install.sh |
 # Fetch the tool index (required on first run)
 devstrap index update
 
-# Check for available upgrades
-devstrap tool update
+# Check for available upgrades (dry run)
+devstrap tool install --all --dry-run
 
-# Upgrade all tools to their latest versions
-devstrap tool upgrade
+# Install or upgrade all tools to their latest versions
+devstrap tool install --all
 
-# Upgrade specific tools only
-devstrap tool upgrade go node
+# Install or upgrade specific tools only
+devstrap tool install go node
+
+# Install a specific version
+devstrap tool install go --version 1.22.0
 
 # List installed tools and their versions
 devstrap tool list
@@ -74,7 +77,7 @@ devstrap index search lint
 Tools are installed into `~/.local/share/devstrap/<tool>/` by default, and standalone binaries go to `~/.local/bin/`. Use the `--data-dir` and `--bin-dir` flags to change these directories:
 
 ```sh
-devstrap tool upgrade --data-dir ~/dev --bin-dir ~/dev/bin
+devstrap tool install --data-dir ~/dev --bin-dir ~/dev/bin
 ```
 
 devstrap respects `XDG_DATA_HOME` for the data directory and `XDG_CACHE_HOME` for the index cache.
