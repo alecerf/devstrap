@@ -4,7 +4,10 @@
 // discovery, download, checksum verification, and installation.
 package registry
 
-import "context"
+import (
+	"context"
+	"path"
+)
 
 // Tool is the interface every installer implements.
 type Tool interface {
@@ -170,4 +173,15 @@ type PlatformSpec struct {
 	// Arch maps runtime GOARCH values to tool-specific arch names.
 	// Example: {"amd64": "x64", "arm64": "arm64"}
 	Arch map[string]string `json:"arch"`
+}
+
+// RelBinDir returns the bin directory relative to DataDir for directory-mode
+// tools (derived from Detect.Binary, e.g. "go/bin/go" → "go/bin").
+// Returns an empty string for binary-mode tools.
+func (d *Definition) RelBinDir() string {
+	if d.Install.Mode != "directory" || d.Detect.Binary == "" {
+		return ""
+	}
+
+	return path.Dir(d.Detect.Binary)
 }
