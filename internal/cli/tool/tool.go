@@ -12,6 +12,7 @@ func NewCmd(baseDir *string) *cobra.Command {
 	}
 
 	cmd.AddCommand(
+		newInstallCmd(baseDir),
 		newUpdateCmd(baseDir),
 		newUpgradeCmd(baseDir),
 		newListCmd(baseDir),
