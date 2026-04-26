@@ -14,6 +14,8 @@ builds:
       - arm64
     ldflags:
       - -s -w -X github.com/alecerf/devstrap/internal/cli.Version={{ .Version }}
+    flags:
+      - -trimpath
 
 archives:
   - id: devstrap
