@@ -2,6 +2,7 @@ package index
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/alecerf/devstrap/internal/registry"
 	"github.com/spf13/cobra"
@@ -22,7 +23,7 @@ func runList(_ *cobra.Command, _ []string) error {
 	}
 
 	if len(idx.Definitions) == 0 {
-		fmt.Println("  No tools in the index.")
+		_, _ = fmt.Fprintln(os.Stdout, "  No tools in the index.")
 
 		return nil
 	}

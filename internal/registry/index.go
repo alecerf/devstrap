@@ -17,6 +17,8 @@ const (
 
 	indexFilename = "index.json"
 	toolsFilename = "tools.json"
+	dirPerm       = 0o750
+	filePerm      = 0o600
 )
 
 // ErrNoIndex is returned when the local index cache does not exist.
@@ -55,7 +57,7 @@ func Load() (*Index, error) {
 
 // LoadFrom reads the index from the given JSON file.
 func LoadFrom(path string) (*Index, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil, ErrNoIndex
@@ -88,12 +90,14 @@ func Update(ctx context.Context, remoteURL string) error {
 // UpdateTo fetches the tool listing and individual definitions from the remote
 // URL, assembles them into a single index file, and writes it to dir.
 func UpdateTo(ctx context.Context, remoteURL, dir string) error {
-	err := os.MkdirAll(dir, 0o750)
+	err := os.MkdirAll(dir, dirPerm)
 	if err != nil {
 		return fmt.Errorf("create cache dir: %w", err)
 	}
 
-	toolNames, err := downloader.FetchJSON[[]string](ctx, remoteURL+"/"+toolsFilename)
+	var toolNames []string
+
+	err = downloader.FetchJSON(ctx, remoteURL+"/"+toolsFilename, &toolNames)
 	if err != nil {
 		return fmt.Errorf("fetch tool listing: %w", err)
 	}
@@ -101,7 +105,9 @@ func UpdateTo(ctx context.Context, remoteURL, dir string) error {
 	defs := make([]Definition, 0, len(toolNames))
 
 	for _, toolPath := range toolNames {
-		def, err := downloader.FetchJSON[Definition](ctx, remoteURL+"/"+toolPath)
+		var def Definition
+
+		err = downloader.FetchJSON(ctx, remoteURL+"/"+toolPath, &def)
 		if err != nil {
 			return fmt.Errorf("fetch tool %s: %w", toolPath, err)
 		}
@@ -116,7 +122,7 @@ func UpdateTo(ctx context.Context, remoteURL, dir string) error {
 
 	localPath := filepath.Join(dir, indexFilename)
 
-	err = os.WriteFile(localPath, data, 0o600)
+	err = os.WriteFile(localPath, data, filePerm)
 	if err != nil {
 		return fmt.Errorf("write index: %w", err)
 	}

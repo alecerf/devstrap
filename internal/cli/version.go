@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -20,5 +21,5 @@ func newVersionCmd() *cobra.Command {
 }
 
 func runVersion(_ *cobra.Command, _ []string) {
-	fmt.Printf("devstrap %s\n", Version)
+	_, _ = fmt.Fprintf(os.Stdout, "devstrap %s\n", Version)
 }

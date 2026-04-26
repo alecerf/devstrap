@@ -2,6 +2,7 @@ package tool
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/alecerf/devstrap/internal/cli/ui"
@@ -50,21 +51,32 @@ func resolveTools(paths registry.Paths, args []string) ([]string, map[string]reg
 	tools := make(map[string]registry.Tool, len(idx.Definitions))
 
 	for _, def := range idx.Definitions {
-		t, tErr := registry.NewTool(def, paths, plat)
-		if tErr != nil {
-			fmt.Printf("  %s skipping %s: %v\n", ui.YellowBold("•"), def.Name, tErr)
+		tool, toolErr := registry.NewTool(def, paths, plat)
+		if toolErr != nil {
+			_, _ = fmt.Fprintf(
+				os.Stdout,
+				"  %s skipping %s: %v\n",
+				ui.YellowBold("•"),
+				def.Name,
+				toolErr,
+			)
 
 			continue
 		}
 
 		names = append(names, def.Name)
-		tools[def.Name] = t
+		tools[def.Name] = tool
 	}
 
 	if len(args) > 0 {
 		for _, name := range args {
 			if _, ok := tools[name]; !ok {
-				return nil, nil, fmt.Errorf("%w: %q (valid: %s)", errUnknownTool, name, strings.Join(names, ", "))
+				return nil, nil, fmt.Errorf(
+					"%w: %q (valid: %s)",
+					errUnknownTool,
+					name,
+					strings.Join(names, ", "),
+				)
 			}
 		}
 

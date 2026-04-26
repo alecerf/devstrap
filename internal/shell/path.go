@@ -13,6 +13,7 @@ import (
 // directory-mode tools whose install directory exists on disk.
 func Paths(paths registry.Paths, defs []registry.Definition) []string {
 	seen := make(map[string]struct{})
+
 	var dirs []string
 
 	add := func(dir string) {
@@ -25,6 +26,7 @@ func Paths(paths registry.Paths, defs []registry.Definition) []string {
 		}
 
 		seen[dir] = struct{}{}
+
 		dirs = append(dirs, dir)
 	}
 
@@ -42,5 +44,6 @@ func Paths(paths registry.Paths, defs []registry.Definition) []string {
 
 func isDir(path string) bool {
 	info, err := os.Stat(path)
+
 	return err == nil && info.IsDir()
 }

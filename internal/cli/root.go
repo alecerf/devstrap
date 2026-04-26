@@ -53,8 +53,10 @@ or "devstrap tool install --all" to bring everything to the latest version.`,
 		SilenceErrors: true,
 	}
 
-	root.PersistentFlags().StringVar(&paths.DataDir, "data-dir", defaultDataDir(), "directory for tool installations")
-	root.PersistentFlags().StringVar(&paths.BinDir, "bin-dir", defaultBinDir(), "directory for standalone binaries")
+	root.PersistentFlags().
+		StringVar(&paths.DataDir, "data-dir", defaultDataDir(), "directory for tool installations")
+	root.PersistentFlags().
+		StringVar(&paths.BinDir, "bin-dir", defaultBinDir(), "directory for standalone binaries")
 
 	root.AddCommand(
 		tool.NewCmd(&paths),

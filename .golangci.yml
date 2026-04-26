@@ -6,24 +6,18 @@ linters:
     - wsl
     - depguard
     - exhaustruct
-    - funcorder
     - gochecknoglobals
-    - mnd
-    - nlreturn
-    - varnamelen
-    - wsl_v5
-    - forbidigo
     - tagliatelle
   settings:
     gosec:
       excludes:
         - G204
-        - G302
-        - G304
-        - G703
 
 formatters:
   enable:
     - gci
     - gofmt
+    - gofumpt
     - goimports
+    - golines
+    - swaggo

@@ -30,14 +30,21 @@ func runAction(paths registry.Paths, args []string, version, label string) error
 	}
 
 	ctx := context.Background()
-	p := ui.NewPrinter(order)
+	printer := ui.NewPrinter(order)
 	start := time.Now()
 
-	c := runTools(ctx, order, all, version, p)
+	counts := runTools(ctx, order, all, version, printer)
 
-	p.PrintSummary(len(order), label, c.acted, c.upToDate, c.failed, time.Since(start))
+	printer.PrintSummary(
+		len(order),
+		label,
+		counts.acted,
+		counts.upToDate,
+		counts.failed,
+		time.Since(start),
+	)
 
-	if c.failed > 0 {
+	if counts.failed > 0 {
 		return errToolsFailed
 	}
 
@@ -49,16 +56,16 @@ func runTools(
 	names []string,
 	tools map[string]registry.Tool,
 	version string,
-	p ui.Printer,
+	printer ui.Printer,
 ) runCounts {
-	var c runCounts
+	var counts runCounts
 
 	for i, name := range names {
-		prefix := p.ProgressPrefix(i, len(names), name)
-		sp := ui.NewSpinner(prefix + "  checking...")
+		prefix := printer.ProgressPrefix(i, len(names), name)
+		spinner := ui.NewSpinner(prefix + "  checking...")
 
 		status := func(msg string) {
-			sp.Update(prefix + "  " + msg)
+			spinner.Update(prefix + "  " + msg)
 		}
 
 		var res registry.Result
@@ -68,20 +75,23 @@ func runTools(
 			res = registry.Run(ctx, tools[name], status)
 		}
 
-		sp.Stop()
+		spinner.Stop()
 
 		switch {
 		case res.Err != nil:
-			p.PrintError(name, res.Err)
-			c.failed++
+			printer.PrintError(name, res.Err)
+
+			counts.failed++
 		case res.Status == "up-to-date":
-			p.PrintSuccess(name, fmt.Sprintf("up-to-date (%s)", res.Version))
-			c.upToDate++
+			printer.PrintSuccess(name, fmt.Sprintf("up-to-date (%s)", res.Version))
+
+			counts.upToDate++
 		default:
-			p.PrintSuccess(name, "installed "+res.Version)
-			c.acted++
+			printer.PrintSuccess(name, "installed "+res.Version)
+
+			counts.acted++
 		}
 	}
 
-	return c
+	return counts
 }

@@ -3,6 +3,7 @@ package index
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/alecerf/devstrap/internal/cli/ui"
 	"github.com/alecerf/devstrap/internal/registry"
@@ -33,7 +34,7 @@ func printDefinitions(defs []registry.Definition) {
 		names[i] = def.Name
 	}
 
-	p := ui.NewPrinter(names)
+	printer := ui.NewPrinter(names)
 
 	for _, def := range defs {
 		desc := def.Description
@@ -41,6 +42,6 @@ func printDefinitions(defs []registry.Definition) {
 			desc = ui.Dim("no description")
 		}
 
-		fmt.Printf("  %s  %s\n", ui.Bold(p.Pad(def.Name)), desc)
+		_, _ = fmt.Fprintf(os.Stdout, "  %s  %s\n", ui.Bold(printer.Pad(def.Name)), desc)
 	}
 }

@@ -25,14 +25,14 @@ type SourceData struct {
 
 // renderTemplate executes a Go text/template string with the given data.
 func renderTemplate(tmpl string, data TemplateData) (string, error) {
-	t, err := template.New("").Parse(tmpl)
+	parsedTmpl, err := template.New("").Parse(tmpl)
 	if err != nil {
 		return "", fmt.Errorf("parse template %q: %w", tmpl, err)
 	}
 
 	var buf bytes.Buffer
 
-	err = t.Execute(&buf, data)
+	err = parsedTmpl.Execute(&buf, data)
 	if err != nil {
 		return "", fmt.Errorf("execute template %q: %w", tmpl, err)
 	}

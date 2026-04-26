@@ -20,26 +20,26 @@ var ErrChecksumNotFound = errors.New("checksum not found")
 
 // VerifyChecksum checks that the SHA-256 of file matches expected (hex string).
 func VerifyChecksum(file, expected string) (err error) {
-	f, err := os.Open(file)
+	fileHandle, err := os.Open(filepath.Clean(file))
 	if err != nil {
 		return fmt.Errorf("open %s: %w", file, err)
 	}
 
 	defer func() {
-		cErr := f.Close()
+		cErr := fileHandle.Close()
 		if cErr != nil && err == nil {
 			err = fmt.Errorf("close %s: %w", file, cErr)
 		}
 	}()
 
-	h := sha256.New()
+	hasher := sha256.New()
 
-	_, err = io.Copy(h, f)
+	_, err = io.Copy(hasher, fileHandle)
 	if err != nil {
 		return fmt.Errorf("read %s: %w", file, err)
 	}
 
-	got := hex.EncodeToString(h.Sum(nil))
+	got := hex.EncodeToString(hasher.Sum(nil))
 	if !strings.EqualFold(got, expected) {
 		return fmt.Errorf("%w: got %s, want %s", ErrChecksumMismatch, got, expected)
 	}

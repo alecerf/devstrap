@@ -9,21 +9,21 @@ import (
 )
 
 // Check queries the current and latest versions without installing.
-func Check(ctx context.Context, t Tool, status func(string)) CheckInfo {
+func Check(ctx context.Context, tool Tool, status func(string)) CheckInfo {
 	status("checking for updates...")
 
-	latest, _, err := t.FetchLatest(ctx)
+	latest, _, err := tool.FetchLatest(ctx)
 	if err != nil {
-		return CheckInfo{Name: t.Name(), Err: err}
+		return CheckInfo{Name: tool.Name(), Err: err}
 	}
 
-	current, err := t.CurrentVersion(ctx)
+	current, err := tool.CurrentVersion(ctx)
 	if err != nil {
-		return CheckInfo{Name: t.Name(), Latest: latest}
+		return CheckInfo{Name: tool.Name(), Latest: latest}
 	}
 
 	return CheckInfo{
-		Name:     t.Name(),
+		Name:     tool.Name(),
 		Current:  current,
 		Latest:   latest,
 		UpToDate: !isNewer(latest, current),
@@ -31,65 +31,70 @@ func Check(ctx context.Context, t Tool, status func(string)) CheckInfo {
 }
 
 // Run checks for updates and installs if needed.
-func Run(ctx context.Context, t Tool, status func(string)) Result {
+func Run(ctx context.Context, tool Tool, status func(string)) Result {
 	status("checking for updates...")
 
-	latest, extra, err := t.FetchLatest(ctx)
+	latest, extra, err := tool.FetchLatest(ctx)
 	if err != nil {
-		return Result{Name: t.Name(), Err: err}
+		return Result{Name: tool.Name(), Err: err}
 	}
 
-	current, err := t.CurrentVersion(ctx)
+	current, err := tool.CurrentVersion(ctx)
 	if err == nil && !isNewer(latest, current) {
-		return Result{Name: t.Name(), Status: "up-to-date", Version: current}
+		return Result{Name: tool.Name(), Status: "up-to-date", Version: current}
 	}
 
 	status(fmt.Sprintf("installing %s...", latest))
 
-	err = t.Install(ctx, status, latest, extra)
+	err = tool.Install(ctx, status, latest, extra)
 	if err != nil {
-		return Result{Name: t.Name(), Err: err}
+		return Result{Name: tool.Name(), Err: err}
 	}
 
-	return Result{Name: t.Name(), Status: "installed", Version: latest}
+	return Result{Name: tool.Name(), Status: "installed", Version: latest}
 }
 
 // RunVersion installs the exact requested version.
 // It always performs the installation because version detection may be
 // unreliable (e.g. Go's GOTOOLCHAIN auto-forwarding reports a different
 // version than the one actually installed on disk).
-func RunVersion(ctx context.Context, t Tool, status func(string), version string) Result {
+func RunVersion(ctx context.Context, tool Tool, status func(string), version string) Result {
 	status(fmt.Sprintf("fetching metadata for %s...", version))
 
-	extra, err := t.FetchVersion(ctx, version)
+	extra, err := tool.FetchVersion(ctx, version)
 	if err != nil {
-		return Result{Name: t.Name(), Err: err}
+		return Result{Name: tool.Name(), Err: err}
 	}
 
 	status(fmt.Sprintf("installing %s...", version))
 
-	err = t.Install(ctx, status, version, extra)
+	err = tool.Install(ctx, status, version, extra)
 	if err != nil {
-		return Result{Name: t.Name(), Err: err}
+		return Result{Name: tool.Name(), Err: err}
 	}
 
-	return Result{Name: t.Name(), Status: "installed", Version: version}
+	return Result{Name: tool.Name(), Status: "installed", Version: version}
 }
 
 // isNewer returns true if latest is a newer semantic version than current.
 func isNewer(latest, current string) bool {
-	l := "v" + latest
+	latestV := "v" + latest
 
 	c := "v" + current
-	if !semver.IsValid(l) || !semver.IsValid(c) {
+	if !semver.IsValid(latestV) || !semver.IsValid(c) {
 		return latest != current
 	}
 
-	return semver.Compare(l, c) > 0
+	return semver.Compare(latestV, c) > 0
 }
 
 // RunVersionCmd runs a binary with the given args and parses the version from output.
-func RunVersionCmd(ctx context.Context, bin string, args []string, parse func(string) (string, error)) (string, error) {
+func RunVersionCmd(
+	ctx context.Context,
+	bin string,
+	args []string,
+	parse func(string) (string, error),
+) (string, error) {
 	out, err := exec.CommandContext(ctx, bin, args...).Output()
 	if err != nil {
 		return "", fmt.Errorf("run %s: %w", bin, err)

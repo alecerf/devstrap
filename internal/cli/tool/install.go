@@ -49,9 +49,11 @@ func newInstallCmd(paths *registry.Paths) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&version, "version", "", "install a specific version instead of the latest")
+	cmd.Flags().
+		StringVar(&version, "version", "", "install a specific version instead of the latest")
 	cmd.Flags().BoolVar(&all, "all", false, "install all tools from the index")
-	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "check for available upgrades without installing")
+	cmd.Flags().
+		BoolVar(&dryRun, "dry-run", false, "check for available upgrades without installing")
 
 	return cmd
 }
@@ -63,39 +65,44 @@ func runDryRun(paths registry.Paths, args []string) error {
 	}
 
 	ctx := context.Background()
-	p := ui.NewPrinter(order)
+	printer := ui.NewPrinter(order)
 	start := time.Now()
 
 	var upToDate, updatable, failed int
 
 	for i, name := range order {
-		prefix := p.ProgressPrefix(i, len(order), name)
-		sp := ui.NewSpinner(prefix + "  checking...")
+		prefix := printer.ProgressPrefix(i, len(order), name)
+		spinner := ui.NewSpinner(prefix + "  checking...")
 
 		status := func(msg string) {
-			sp.Update(prefix + "  " + msg)
+			spinner.Update(prefix + "  " + msg)
 		}
 
 		info := registry.Check(ctx, all[name], status)
-		sp.Stop()
+
+		spinner.Stop()
 
 		switch {
 		case info.Err != nil:
-			p.PrintError(name, info.Err)
+			printer.PrintError(name, info.Err)
+
 			failed++
 		case info.UpToDate:
-			p.PrintSuccess(name, fmt.Sprintf("up-to-date (%s)", info.Current))
+			printer.PrintSuccess(name, fmt.Sprintf("up-to-date (%s)", info.Current))
+
 			upToDate++
 		case info.Current == "":
-			p.PrintInfo(name, fmt.Sprintf("not installed → %s available", info.Latest))
+			printer.PrintInfo(name, fmt.Sprintf("not installed → %s available", info.Latest))
+
 			updatable++
 		default:
-			p.PrintInfo(name, fmt.Sprintf("%s → %s available", info.Current, info.Latest))
+			printer.PrintInfo(name, fmt.Sprintf("%s → %s available", info.Current, info.Latest))
+
 			updatable++
 		}
 	}
 
-	p.PrintSummary(len(order), "to upgrade", updatable, upToDate, failed, time.Since(start))
+	printer.PrintSummary(len(order), "to upgrade", updatable, upToDate, failed, time.Since(start))
 
 	return nil
 }

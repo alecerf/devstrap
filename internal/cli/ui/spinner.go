@@ -9,6 +9,8 @@ import (
 	"github.com/mattn/go-isatty"
 )
 
+const spinnerIntervalMs = 80
+
 // Interactive reports whether stdout is a terminal.
 var Interactive = isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd())
 
@@ -24,43 +26,17 @@ type Spinner struct {
 
 // NewSpinner starts a new animated spinner with the given message.
 func NewSpinner(msg string) *Spinner {
-	s := &Spinner{
+	spinner := &Spinner{
 		msg:    msg,
 		stopCh: make(chan struct{}),
 		doneCh: make(chan struct{}),
 	}
 
 	if Interactive {
-		go s.run()
+		go spinner.run()
 	}
 
-	return s
-}
-
-func (s *Spinner) run() {
-	defer close(s.doneCh)
-
-	idx := 0
-	ticker := time.NewTicker(80 * time.Millisecond)
-
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-s.stopCh:
-			fmt.Print("\r\033[K")
-
-			return
-		case <-ticker.C:
-			s.mu.Lock()
-			msg := s.msg
-			s.mu.Unlock()
-
-			fmt.Printf("\r  %s %s\033[K", YellowBold(frames[idx]), msg)
-
-			idx = (idx + 1) % len(frames)
-		}
-	}
+	return spinner
 }
 
 // Update changes the spinner message.
@@ -78,4 +54,30 @@ func (s *Spinner) Stop() {
 
 	close(s.stopCh)
 	<-s.doneCh
+}
+
+func (s *Spinner) run() {
+	defer close(s.doneCh)
+
+	idx := 0
+	ticker := time.NewTicker(spinnerIntervalMs * time.Millisecond)
+
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-s.stopCh:
+			_, _ = fmt.Fprint(os.Stdout, "\r\033[K")
+
+			return
+		case <-ticker.C:
+			s.mu.Lock()
+			msg := s.msg
+			s.mu.Unlock()
+
+			_, _ = fmt.Fprintf(os.Stdout, "\r  %s %s\033[K", YellowBold(frames[idx]), msg)
+
+			idx = (idx + 1) % len(frames)
+		}
+	}
 }

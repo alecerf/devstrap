@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/alecerf/devstrap/internal/registry"
 	"github.com/alecerf/devstrap/internal/shell"
@@ -30,7 +31,7 @@ func runEnv() error {
 	}
 
 	dirs := shell.Paths(paths, idx.Definitions)
-	fmt.Println(shell.ZshSnippet(dirs))
+	_, _ = fmt.Fprintln(os.Stdout, shell.ZshSnippet(dirs))
 
 	return nil
 }

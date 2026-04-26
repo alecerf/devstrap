@@ -3,6 +3,7 @@ package ui
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -19,6 +20,8 @@ var (
 	Dim        = color.New(color.Faint).SprintFunc()
 )
 
+const secondsPerMinute = 60
+
 // Printer formats tool output with aligned names.
 type Printer struct {
 	width int
@@ -26,15 +29,15 @@ type Printer struct {
 
 // NewPrinter creates a Printer calibrated to the given name list.
 func NewPrinter(names []string) Printer {
-	w := 0
+	maxWidth := 0
 
 	for _, n := range names {
-		if len(n) > w {
-			w = len(n)
+		if len(n) > maxWidth {
+			maxWidth = len(n)
 		}
 	}
 
-	return Printer{width: w}
+	return Printer{width: maxWidth}
 }
 
 // Pad right-pads a name to the column width.
@@ -52,21 +55,26 @@ func (p Printer) ProgressPrefix(i, total int, name string) string {
 
 // PrintSuccess prints a green checkmark line.
 func (p Printer) PrintSuccess(name, msg string) {
-	fmt.Printf("  %s %s  %s\n", GreenBold("✔"), Bold(p.Pad(name)), msg)
+	_, _ = fmt.Fprintf(os.Stdout, "  %s %s  %s\n", GreenBold("✔"), Bold(p.Pad(name)), msg)
 }
 
 // PrintError prints a red cross line.
 func (p Printer) PrintError(name string, err error) {
-	fmt.Printf("  %s %s  %v\n", RedBold("✖"), Bold(p.Pad(name)), err)
+	_, _ = fmt.Fprintf(os.Stdout, "  %s %s  %v\n", RedBold("✖"), Bold(p.Pad(name)), err)
 }
 
 // PrintInfo prints a yellow bullet line.
 func (p Printer) PrintInfo(name, msg string) {
-	fmt.Printf("  %s %s  %s\n", YellowBold("•"), Bold(p.Pad(name)), msg)
+	_, _ = fmt.Fprintf(os.Stdout, "  %s %s  %s\n", YellowBold("•"), Bold(p.Pad(name)), msg)
 }
 
 // PrintSummary prints a summary line with counts and elapsed time.
-func (p Printer) PrintSummary(total int, label string, count, upToDate, failed int, elapsed time.Duration) {
+func (p Printer) PrintSummary(
+	total int,
+	label string,
+	count, upToDate, failed int,
+	elapsed time.Duration,
+) {
 	parts := []string{Bold(strconv.Itoa(total)) + " checked"}
 
 	if count > 0 {
@@ -81,20 +89,20 @@ func (p Printer) PrintSummary(total int, label string, count, upToDate, failed i
 		parts = append(parts, RedBold(strconv.Itoa(failed))+" failed")
 	}
 
-	fmt.Printf("\n%s %s\n",
+	_, _ = fmt.Fprintf(os.Stdout, "\n%s %s\n",
 		strings.Join(parts, ", "),
 		Dim("("+FormatDuration(elapsed)+")"),
 	)
 }
 
 // FormatDuration formats a duration for human display.
-func FormatDuration(d time.Duration) string {
-	if d < time.Minute {
-		return fmt.Sprintf("%.1fs", d.Seconds())
+func FormatDuration(dur time.Duration) string {
+	if dur < time.Minute {
+		return fmt.Sprintf("%.1fs", dur.Seconds())
 	}
 
-	m := int(d.Minutes())
-	s := int(d.Seconds()) % 60
+	m := int(dur.Minutes())
+	s := int(dur.Seconds()) % secondsPerMinute
 
 	return fmt.Sprintf("%dm %ds", m, s)
 }

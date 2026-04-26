@@ -3,6 +3,7 @@ package index
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/alecerf/devstrap/internal/cli/ui"
 	"github.com/alecerf/devstrap/internal/registry"
@@ -22,10 +23,11 @@ func runUpdate(_ *cobra.Command, _ []string) error {
 	sp := ui.NewSpinner("  fetching index...")
 
 	err := registry.Update(ctx, registry.DefaultRemoteURL)
+
 	sp.Stop()
 
 	if err != nil {
-		fmt.Printf("  %s %s\n", ui.RedBold("✖"), "failed to update index")
+		_, _ = fmt.Fprintf(os.Stdout, "  %s %s\n", ui.RedBold("✖"), "failed to update index")
 
 		return fmt.Errorf("update index: %w", err)
 	}
@@ -35,7 +37,7 @@ func runUpdate(_ *cobra.Command, _ []string) error {
 		return fmt.Errorf("load updated index: %w", err)
 	}
 
-	fmt.Printf("  %s index updated (%d tools available)\n",
+	_, _ = fmt.Fprintf(os.Stdout, "  %s index updated (%d tools available)\n",
 		ui.GreenBold("✔"), len(idx.Definitions))
 
 	return nil

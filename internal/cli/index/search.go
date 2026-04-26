@@ -2,6 +2,7 @@ package index
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/alecerf/devstrap/internal/registry"
@@ -24,6 +25,7 @@ func runSearch(_ *cobra.Command, args []string) error {
 	}
 
 	query := strings.ToLower(args[0])
+
 	var matches []registry.Definition
 
 	for _, def := range idx.Definitions {
@@ -34,7 +36,7 @@ func runSearch(_ *cobra.Command, args []string) error {
 	}
 
 	if len(matches) == 0 {
-		fmt.Printf("  No tools matching %q\n", args[0])
+		_, _ = fmt.Fprintf(os.Stdout, "  No tools matching %q\n", args[0])
 
 		return nil
 	}

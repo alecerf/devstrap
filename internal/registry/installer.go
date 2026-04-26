@@ -12,24 +12,24 @@ import (
 	"github.com/alecerf/devstrap/internal/downloader"
 )
 
-// installer implements engine.Tool using a declarative Definition.
-type installer struct {
+const regexMinMatches = 2
+
+// Installer implements Tool using a declarative Definition.
+type Installer struct {
 	def   Definition
 	paths Paths
 	os    string
 	arch  string
 }
 
-// NewTool creates a Tool from a Definition, paths, and platform.
-//
-//nolint:ireturn // factory function
-func NewTool(def Definition, paths Paths, plat Platform) (Tool, error) {
+// NewTool creates an Installer from a Definition, paths, and platform.
+func NewTool(def Definition, paths Paths, plat Platform) (*Installer, error) {
 	mappedOS, mappedArch, err := mapPlatform(plat, def)
 	if err != nil {
 		return nil, err
 	}
 
-	return &installer{
+	return &Installer{
 		def:   def,
 		paths: paths,
 		os:    mappedOS,
@@ -37,21 +37,12 @@ func NewTool(def Definition, paths Paths, plat Platform) (Tool, error) {
 	}, nil
 }
 
-func (i *installer) Name() string { return i.def.Name }
+// Name returns the tool's name as defined in the index.
+func (i *Installer) Name() string { return i.def.Name }
 
-func (i *installer) templateData() TemplateData {
-	return TemplateData{
-		OS:   i.os,
-		Arch: i.arch,
-		Name: i.def.Name,
-		Source: SourceData{
-			Owner: i.def.Source.Owner,
-			Repo:  i.def.Source.Repo,
-		},
-	}
-}
-
-func (i *installer) FetchLatest(ctx context.Context) (string, string, error) {
+// FetchLatest queries the source for the latest version and returns the version,
+// serialised fetch metadata (extra), and any error.
+func (i *Installer) FetchLatest(ctx context.Context) (string, string, error) {
 	data := i.templateData()
 
 	result, err := fetchLatest(ctx, i.def, data)
@@ -68,7 +59,9 @@ func (i *installer) FetchLatest(ctx context.Context) (string, string, error) {
 	return result.Version, string(extra), nil
 }
 
-func (i *installer) FetchVersion(ctx context.Context, version string) (string, error) {
+// FetchVersion queries the source for a specific version and returns serialised
+// fetch metadata (extra) or an error.
+func (i *Installer) FetchVersion(ctx context.Context, version string) (string, error) {
 	data := i.templateData()
 
 	result, err := fetchVersion(ctx, i.def, data, version)
@@ -84,7 +77,8 @@ func (i *installer) FetchVersion(ctx context.Context, version string) (string, e
 	return string(extra), nil
 }
 
-func (i *installer) CurrentVersion(ctx context.Context) (string, error) {
+// CurrentVersion runs the tool's version command and parses the result.
+func (i *Installer) CurrentVersion(ctx context.Context) (string, error) {
 	var bin string
 
 	if i.def.Install.Mode == "binary" {
@@ -93,15 +87,20 @@ func (i *installer) CurrentVersion(ctx context.Context) (string, error) {
 		bin = filepath.Join(i.paths.DataDir, i.def.Detect.Binary)
 	}
 
-	re, err := regexp.Compile(i.def.Detect.VersionRegex)
+	versionRegex, err := regexp.Compile(i.def.Detect.VersionRegex)
 	if err != nil {
 		return "", fmt.Errorf("compile version regex: %w", err)
 	}
 
 	parse := func(output string) (string, error) {
-		m := re.FindStringSubmatch(output)
-		if len(m) < 2 {
-			return "", fmt.Errorf("%w: regex %q, output %q", errVersionRegexNoMatch, i.def.Detect.VersionRegex, output)
+		m := versionRegex.FindStringSubmatch(output)
+		if len(m) < regexMinMatches {
+			return "", fmt.Errorf(
+				"%w: regex %q, output %q",
+				errVersionRegexNoMatch,
+				i.def.Detect.VersionRegex,
+				output,
+			)
 		}
 
 		return strings.TrimPrefix(m[1], "v"), nil
@@ -115,7 +114,9 @@ func (i *installer) CurrentVersion(ctx context.Context) (string, error) {
 	return v, nil
 }
 
-func (i *installer) Install(ctx context.Context, status func(string), version, extra string) error {
+// Install downloads, verifies, and installs the tool at the given version using
+// the serialised fetch metadata produced by FetchLatest or FetchVersion.
+func (i *Installer) Install(ctx context.Context, status func(string), version, extra string) error {
 	var result fetchResult
 
 	err := json.Unmarshal([]byte(extra), &result)
@@ -164,7 +165,19 @@ func (i *installer) Install(ctx context.Context, status func(string), version, e
 	}
 }
 
-func (i *installer) verifyChecksum(
+func (i *Installer) templateData() TemplateData {
+	return TemplateData{
+		OS:   i.os,
+		Arch: i.arch,
+		Name: i.def.Name,
+		Source: SourceData{
+			Owner: i.def.Source.Owner,
+			Repo:  i.def.Source.Repo,
+		},
+	}
+}
+
+func (i *Installer) verifyChecksum(
 	ctx context.Context,
 	status func(string),
 	data TemplateData,
@@ -215,10 +228,10 @@ func (i *installer) verifyChecksum(
 	return nil
 }
 
-func (i *installer) installDirectory(ctx context.Context, tmp, archiveFile string) error {
+func (i *Installer) installDirectory(ctx context.Context, tmp, archiveFile string) error {
 	extractDir := filepath.Join(tmp, "extract")
 
-	err := os.MkdirAll(extractDir, 0o750)
+	err := os.MkdirAll(extractDir, dirPerm)
 	if err != nil {
 		return fmt.Errorf("create extract dir: %w", err)
 	}
@@ -231,7 +244,7 @@ func (i *installer) installDirectory(ctx context.Context, tmp, archiveFile strin
 	dest := filepath.Join(i.paths.DataDir, i.def.Install.Dest)
 	_ = os.RemoveAll(dest)
 
-	err = os.MkdirAll(filepath.Dir(dest), 0o750)
+	err = os.MkdirAll(filepath.Dir(dest), dirPerm)
 	if err != nil {
 		return fmt.Errorf("create parent dir: %w", err)
 	}
@@ -244,7 +257,11 @@ func (i *installer) installDirectory(ctx context.Context, tmp, archiveFile strin
 	return nil
 }
 
-func (i *installer) installBinary(ctx context.Context, data TemplateData, tmp, archiveFile string) error {
+func (i *Installer) installBinary(
+	ctx context.Context,
+	data TemplateData,
+	tmp, archiveFile string,
+) error {
 	err := downloader.ExtractTarGz(ctx, archiveFile, tmp, 0)
 	if err != nil {
 		return fmt.Errorf("extract archive: %w", err)
