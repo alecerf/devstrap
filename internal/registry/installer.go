@@ -93,8 +93,8 @@ func (i *Installer) CurrentVersion(ctx context.Context) (string, error) {
 	}
 
 	parse := func(output string) (string, error) {
-		m := versionRegex.FindStringSubmatch(output)
-		if len(m) < regexMinMatches {
+		matches := versionRegex.FindStringSubmatch(output)
+		if len(matches) < regexMinMatches {
 			return "", fmt.Errorf(
 				"%w: regex %q, output %q",
 				errVersionRegexNoMatch,
@@ -103,7 +103,7 @@ func (i *Installer) CurrentVersion(ctx context.Context) (string, error) {
 			)
 		}
 
-		return strings.TrimPrefix(m[1], "v"), nil
+		return strings.TrimPrefix(matches[1], "v"), nil
 	}
 
 	v, err := RunVersionCmd(ctx, bin, i.def.Detect.Args, parse)
