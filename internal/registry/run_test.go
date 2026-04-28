@@ -125,8 +125,10 @@ type checkTestCase struct {
 	wantInfo registry.CheckInfo
 }
 
-func checkTestCases() []checkTestCase {
-	return []checkTestCase{
+func TestCheck(t *testing.T) {
+	t.Parallel()
+
+	tests := []checkTestCase{
 		{
 			name: "up to date",
 			tool: &mockTool{
@@ -169,12 +171,8 @@ func checkTestCases() []checkTestCase {
 			},
 		},
 	}
-}
 
-func TestCheck(t *testing.T) {
-	t.Parallel()
-
-	for _, testCase := range checkTestCases() {
+	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 			assertCheckInfo(
@@ -192,8 +190,10 @@ type runTestCase struct {
 	wantResult registry.Result
 }
 
-func runTestCases() []runTestCase {
-	return []runTestCase{
+func TestRun(t *testing.T) {
+	t.Parallel()
+
+	tests := []runTestCase{
 		{
 			name: "up to date",
 			tool: &mockTool{
@@ -254,12 +254,8 @@ func runTestCases() []runTestCase {
 			wantResult: registry.Result{Name: "test-tool", Err: errMock},
 		},
 	}
-}
 
-func TestRun(t *testing.T) {
-	t.Parallel()
-
-	for _, testCase := range runTestCases() {
+	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 			assertResult(

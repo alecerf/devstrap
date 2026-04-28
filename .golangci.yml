@@ -12,6 +12,11 @@ linters:
     gosec:
       excludes:
         - G204
+  exclusions:
+    rules:
+      - path: "_test\\.go"
+        linters:
+          - funlen
 
 formatters:
   enable:
