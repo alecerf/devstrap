@@ -33,10 +33,10 @@ export PATH="$HOME/.local/bin:$PATH"
 
 ### Installation Options
 
-| Variable      | Description                           | Default       |
-| ------------- | ------------------------------------- | ------------- |
-| `INSTALL_DIR` | Base directory (`bin` goes inside it) | `~/.local`    |
-| `VERSION`     | Pin a specific devstrap version       | latest        |
+| Variable      | Description                           | Default    |
+| ------------- | ------------------------------------- | ---------- |
+| `INSTALL_DIR` | Base directory (`bin` goes inside it) | `~/.local` |
+| `VERSION`     | Pin a specific devstrap version       | latest     |
 
 ```sh
 # Install to /usr/local/bin (requires sudo)
@@ -81,9 +81,9 @@ devstrap tool install go --version 1.22.0
 devstrap tool install --all --dry-run
 ```
 
-| Flag        | Description                                      |
-| ----------- | ------------------------------------------------ |
-| `--all`     | Install every tool defined in the index           |
+| Flag        | Description                                        |
+| ----------- | -------------------------------------------------- |
+| `--all`     | Install every tool defined in the index            |
 | `--dry-run` | Check for upgrades without installing              |
 | `--version` | Pin a specific version (requires exactly one tool) |
 
@@ -174,10 +174,10 @@ devstrap version
 
 These flags can be used with any `tool` subcommand:
 
-| Flag         | Description                             | Default                          |
-| ------------ | --------------------------------------- | -------------------------------- |
-| `--data-dir` | Directory for tool installations         | `~/.local/share/devstrap`        |
-| `--bin-dir`  | Directory for standalone binaries        | `~/.local/bin`                   |
+| Flag         | Description                       | Default                   |
+| ------------ | --------------------------------- | ------------------------- |
+| `--data-dir` | Directory for tool installations  | `~/.local/share/devstrap` |
+| `--bin-dir`  | Directory for standalone binaries | `~/.local/bin`            |
 
 ```sh
 devstrap tool install --all --data-dir ~/dev --bin-dir ~/dev/bin
@@ -208,10 +208,10 @@ This exports `PATH` entries for `~/.local/bin` and each tool's bin directory, an
 
 devstrap respects XDG directories:
 
-| Variable         | Used for            | Default                    |
-| ---------------- | ------------------- | -------------------------- |
-| `XDG_DATA_HOME`  | Tool installations  | `~/.local/share/devstrap`  |
-| `XDG_CACHE_HOME` | Index cache         | `~/.cache/devstrap`        |
+| Variable         | Used for           | Default                   |
+| ---------------- | ------------------ | ------------------------- |
+| `XDG_DATA_HOME`  | Tool installations | `~/.local/share/devstrap` |
+| `XDG_CACHE_HOME` | Index cache        | `~/.cache/devstrap`       |
 
 ## Platforms
 
