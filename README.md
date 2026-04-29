@@ -58,6 +58,7 @@ devstrap
 │   ├── list         List all tools in the index
 │   └── search       Search tools by name or description
 ├── env              Print PATH exports for your shell
+├── update           Update devstrap to the latest version
 ├── version          Print the devstrap version
 └── completion       Generate shell completions (zsh, bash, fish, powershell)
 ```
@@ -138,6 +139,16 @@ Add this to your `~/.zshrc` so tools are always on your `PATH`:
 ```sh
 source <(devstrap env)
 ```
+
+### `devstrap update`
+
+Update the devstrap CLI itself to the latest version.
+
+```sh
+devstrap update
+```
+
+Downloads the latest release from GitHub, verifies its checksum, and atomically replaces the running binary.
 
 ### `devstrap completion`
 

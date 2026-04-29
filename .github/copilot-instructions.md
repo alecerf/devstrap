@@ -29,6 +29,7 @@ devstrap is a CLI that bootstraps and updates development tools by downloading o
 - **`internal/cli/tool`** — `tool install` and `tool list` subcommands. Resolves tool names from the index, validates flag combinations, and delegates to `registry.Run`/`RunVersion`.
 - **`internal/cli/index`** — `index update`, `index list`, and `index search` subcommands.
 - **`internal/cli/ui`** — Terminal output helpers: `Printer` (padded, colored output), `Spinner` (Braille animation), TTY detection, and color functions.
+- **`internal/updater`** — Self-update logic for the devstrap binary. `FetchLatest` queries the GitHub API; `Update` downloads, verifies the SHA-256 checksum, and atomically replaces the running binary.
 
 ### CLI command tree
 
@@ -42,6 +43,7 @@ devstrap (root)
 │   ├── list
 │   └── search <query>
 ├── env
+├── update
 ├── version
 └── completion
 ```
