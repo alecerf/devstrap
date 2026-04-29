@@ -16,6 +16,10 @@ go build -ldflags "-X github.com/alecerf/devstrap/internal/cli.Version=1.0.0"
 
 **After every implementation change**, run `golangci-lint run --fix` and fix all reported issues. Never add `//nolint` directives unless the user explicitly asks for it.
 
+**Always format Go files** with `gofmt` or `goimports` after every code change.
+
+**Format Markdown on every edit.** Whenever a `.md` file is created or modified, run `prettier --write <file>` to format it before committing.
+
 **Keep this file up to date.** Whenever you add, rename, or remove packages, change the CLI command tree, modify public interfaces, or alter conventions, update the relevant sections of this file in the same commit. These instructions are the primary onboarding reference — they must always reflect the current codebase.
 
 ## Architecture
