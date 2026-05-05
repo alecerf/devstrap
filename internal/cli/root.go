@@ -62,7 +62,6 @@ or "devstrap tool install --all" to bring everything to the latest version.`,
 		tool.NewCmd(&paths),
 		newVersionCmd(),
 		newEnvCmd(),
-		newUpdateCmd(Version),
 		index.NewCmd(),
 	)
 

@@ -90,9 +90,11 @@ func Download(ctx context.Context, url, dst string) (err error) {
 	return nil
 }
 
-// InstallBinary copies a binary to destDir and makes it executable.
-func InstallBinary(src, destDir, name string) (err error) {
-	err = os.MkdirAll(destDir, dirPerm)
+// InstallBinary copies a binary to destDir atomically and makes it executable.
+// It writes to a temporary file first, then renames to the final path.
+// This avoids ETXTBSY on Linux when replacing a running binary.
+func InstallBinary(src, destDir, name string) error {
+	err := os.MkdirAll(destDir, dirPerm)
 	if err != nil {
 		return fmt.Errorf("create %s: %w", destDir, err)
 	}
@@ -106,26 +108,38 @@ func InstallBinary(src, destDir, name string) (err error) {
 
 	defer func() { _ = srcFile.Close() }()
 
-	out, err := os.Create(filepath.Clean(dst))
+	// Write to a temp file in the same directory so os.Rename is atomic.
+	tmp, err := os.CreateTemp(destDir, ".devstrap-install-*")
 	if err != nil {
-		return fmt.Errorf("create %s: %w", dst, err)
+		return fmt.Errorf("create temp file: %w", err)
 	}
 
-	defer func() {
-		cErr := out.Close()
-		if cErr != nil && err == nil {
-			err = fmt.Errorf("close %s: %w", dst, cErr)
-		}
-	}()
+	tmpName := tmp.Name()
 
-	_, err = io.Copy(out, srcFile)
+	defer func() { _ = os.Remove(tmpName) }()
+
+	_, err = io.Copy(tmp, srcFile)
 	if err != nil {
-		return fmt.Errorf("write %s: %w", dst, err)
+		_ = tmp.Close()
+
+		return fmt.Errorf("write %s: %w", tmpName, err)
 	}
 
-	err = os.Chmod(dst, execPerm)
+	err = tmp.Chmod(execPerm)
 	if err != nil {
-		return fmt.Errorf("chmod %s: %w", dst, err)
+		_ = tmp.Close()
+
+		return fmt.Errorf("chmod %s: %w", tmpName, err)
+	}
+
+	err = tmp.Close()
+	if err != nil {
+		return fmt.Errorf("close %s: %w", tmpName, err)
+	}
+
+	err = os.Rename(tmpName, dst)
+	if err != nil {
+		return fmt.Errorf("rename to %s: %w", dst, err)
 	}
 
 	return nil
