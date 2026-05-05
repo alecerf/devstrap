@@ -40,7 +40,7 @@ devstrap is a CLI that bootstraps and updates development tools by downloading o
 ```
 devstrap (root)
 ├── tool
-│   ├── install <tools... | --all>  [--version, --dry-run]
+│   ├── install <tools[@version]... | --all>  [--dry-run]
 │   └── list
 ├── index
 │   ├── update

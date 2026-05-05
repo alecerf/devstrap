@@ -75,19 +75,23 @@ devstrap tool install --all
 devstrap tool install go node
 
 # Install a specific version of a tool
-devstrap tool install go --version 1.22.0
+devstrap tool install go@1.22.0
+
+# Mix pinned and latest versions
+devstrap tool install go@1.22.0 node
 
 # Dry run — see what would be upgraded without changing anything
 devstrap tool install --all --dry-run
 ```
 
-| Flag        | Description                                        |
-| ----------- | -------------------------------------------------- |
-| `--all`     | Install every tool defined in the index            |
-| `--dry-run` | Check for upgrades without installing              |
-| `--version` | Pin a specific version (requires exactly one tool) |
+| Flag        | Description                             |
+| ----------- | --------------------------------------- |
+| `--all`     | Install every tool defined in the index |
+| `--dry-run` | Check for upgrades without installing   |
 
-> **Note:** `--all` and `--version` cannot be used together. Same for `--dry-run` and `--version`.
+Pin a version with the `@version` suffix (e.g. `go@1.22.0`). Use `@latest` or omit the suffix for the latest version.
+
+> **Note:** `--all` and `@version` cannot be used together.
 
 ### `devstrap tool list`
 

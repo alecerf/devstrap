@@ -13,30 +13,28 @@ import (
 
 func newInstallCmd(paths *registry.Paths) *cobra.Command {
 	var (
-		version string
-		all     bool
-		dryRun  bool
+		all    bool
+		dryRun bool
 	)
 
 	long := "Install downloads and sets up the specified tools.\n\n" +
+		"Pin a specific version with tool@version (e.g. go@1.22.0).\n" +
 		"Use --dry-run to check for available upgrades without installing.\n\n" +
 		"Available tools: " + strings.Join(toolNames(), ", ")
 
 	cmd := &cobra.Command{
-		Use:       "install <tools... | --all>",
+		Use:       "install <tools[@version]... | --all>",
 		Short:     "Install or upgrade development tools",
 		Long:      long,
 		ValidArgs: toolNames(),
 		RunE: func(_ *cobra.Command, args []string) error {
-			if all && version != "" {
+			names, versions := parseArgs(args)
+
+			if all && hasVersionedArg(versions) {
 				return errAllAndVersionConflict
 			}
 
-			if dryRun && version != "" {
-				return errDryRunAndVersionConflict
-			}
-
-			resolved, err := validateAllFlag(all, args)
+			resolved, err := validateAllFlag(all, names)
 			if err != nil {
 				return err
 			}
@@ -45,12 +43,10 @@ func newInstallCmd(paths *registry.Paths) *cobra.Command {
 				return runDryRun(*paths, resolved)
 			}
 
-			return runAction(*paths, resolved, version, "installed")
+			return runAction(*paths, resolved, versions, "installed")
 		},
 	}
 
-	cmd.Flags().
-		StringVar(&version, "version", "", "install a specific version instead of the latest")
 	cmd.Flags().BoolVar(&all, "all", false, "install all tools from the index")
 	cmd.Flags().
 		BoolVar(&dryRun, "dry-run", false, "check for available upgrades without installing")

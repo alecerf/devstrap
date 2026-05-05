@@ -3,7 +3,6 @@ package tool
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/alecerf/devstrap/internal/cli/ui"
@@ -17,13 +16,12 @@ type runCounts struct {
 }
 
 // runAction is the shared implementation for install and upgrade commands.
-func runAction(paths registry.Paths, args []string, version, label string) error {
-	version = strings.TrimPrefix(version, "v")
-
-	if version != "" && len(args) != 1 {
-		return errVersionRequiresSingleTool
-	}
-
+func runAction(
+	paths registry.Paths,
+	args []string,
+	versions map[string]string,
+	label string,
+) error {
 	order, all, err := resolveTools(paths, args)
 	if err != nil {
 		return err
@@ -33,7 +31,7 @@ func runAction(paths registry.Paths, args []string, version, label string) error
 	printer := ui.NewPrinter(order)
 	start := time.Now()
 
-	counts := runTools(ctx, order, all, version, printer)
+	counts := runTools(ctx, order, all, versions, printer)
 
 	printer.PrintSummary(
 		len(order),
@@ -55,7 +53,7 @@ func runTools(
 	ctx context.Context,
 	names []string,
 	tools map[string]registry.Tool,
-	version string,
+	versions map[string]string,
 	printer ui.Printer,
 ) runCounts {
 	var counts runCounts
@@ -69,6 +67,8 @@ func runTools(
 		}
 
 		var res registry.Result
+
+		version := versions[name]
 		if version != "" {
 			res = registry.RunVersion(ctx, tools[name], status, version)
 		} else {
