@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/alecerf/devstrap/internal/downloader"
+	"golang.org/x/mod/semver"
 )
 
 // fetchResult holds the output of a version discovery call.
@@ -23,7 +25,7 @@ func fetchLatest(ctx context.Context, def Definition, data TemplateData) (fetchR
 	case "json_api":
 		return fetchFromJSONAPI(ctx, def, data)
 	case "github_release":
-		return fetchFromGitHubRelease(ctx, def)
+		return fetchFromGitHubRelease(ctx, def, data)
 	default:
 		return fetchResult{}, fmt.Errorf("%w: %s", errUnsupportedSource, def.Source.Type)
 	}
@@ -40,7 +42,7 @@ func fetchVersion(
 	case "json_api":
 		return fetchVersionFromJSONAPI(ctx, def, data, version)
 	case "github_release":
-		return fetchVersionFromGitHubRelease(ctx, def, version)
+		return fetchVersionFromGitHubRelease(ctx, def, data, version)
 	default:
 		return fetchResult{}, fmt.Errorf("%w: %s", errUnsupportedSource, def.Source.Type)
 	}
@@ -95,11 +97,19 @@ func fetchFromJSONAPI(ctx context.Context, def Definition, data TemplateData) (f
 }
 
 type githubRelease struct {
-	TagName string `json:"tag_name"`
+	TagName string        `json:"tag_name"`
+	Assets  []githubAsset `json:"assets"`
+}
+
+type githubAsset struct {
+	Name string `json:"name"`
 }
 
 // fetchFromGitHubRelease queries the GitHub releases API for the latest version.
-func fetchFromGitHubRelease(ctx context.Context, def Definition) (fetchResult, error) {
+// If version.asset_regex is set, it scans asset names to extract the version.
+func fetchFromGitHubRelease(
+	ctx context.Context, def Definition, data TemplateData,
+) (fetchResult, error) {
 	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/latest",
 		def.Source.Owner, def.Source.Repo)
 
@@ -114,6 +124,12 @@ func fetchFromGitHubRelease(ctx context.Context, def Definition) (fetchResult, e
 		return fetchResult{}, errNoReleaseTag
 	}
 
+	// Asset-based version extraction.
+	if def.Source.Version.AssetRegex != "" {
+		return extractVersionFromAssets(rel, def, data)
+	}
+
+	// Simple tag-based version (default behavior).
 	version := strings.TrimPrefix(rel.TagName, "v")
 
 	return fetchResult{
@@ -310,12 +326,20 @@ func navigateObject(current any, remaining, fullPath string) (any, string, error
 }
 
 // fetchVersionFromGitHubRelease queries the GitHub releases API for a specific version.
-// It tries the "v"-prefixed tag first, then the plain version string.
+// If asset_regex is set, it verifies the version exists in the latest release assets.
+// Otherwise, it tries the "v"-prefixed tag first, then the plain version string.
 func fetchVersionFromGitHubRelease(
 	ctx context.Context,
 	def Definition,
+	data TemplateData,
 	version string,
 ) (fetchResult, error) {
+	// Asset-based version lookup: find the requested version in the latest release.
+	if def.Source.Version.AssetRegex != "" {
+		return fetchVersionFromAssets(ctx, def, data, version)
+	}
+
+	// Simple tag-based lookup.
 	tags := []string{"v" + version, version}
 
 	for _, tag := range tags {
@@ -338,6 +362,116 @@ func fetchVersionFromGitHubRelease(
 	}
 
 	return fetchResult{}, fmt.Errorf("%w for version %q", errVersionNotFound, version)
+}
+
+// extractVersionFromAssets scans release assets to find the highest version
+// matching the asset_regex pattern.
+// compileAssetRegex renders the asset_regex template and compiles it.
+func compileAssetRegex(def Definition, data TemplateData) (*regexp.Regexp, error) {
+	pattern, err := renderTemplate(def.Source.Version.AssetRegex, data)
+	if err != nil {
+		return nil, fmt.Errorf("render asset_regex: %w", err)
+	}
+
+	assetRegex, err := regexp.Compile(pattern)
+	if err != nil {
+		return nil, fmt.Errorf("compile asset_regex %q: %w", pattern, err)
+	}
+
+	return assetRegex, nil
+}
+
+func extractVersionFromAssets(
+	rel githubRelease, def Definition, data TemplateData,
+) (fetchResult, error) {
+	assetRegex, err := compileAssetRegex(def, data)
+	if err != nil {
+		return fetchResult{}, err
+	}
+
+	var versions []string
+
+	for _, asset := range rel.Assets {
+		matches := assetRegex.FindStringSubmatch(asset.Name)
+		if len(matches) >= regexMinMatches {
+			versions = append(versions, matches[1])
+		}
+	}
+
+	if len(versions) == 0 {
+		return fetchResult{}, fmt.Errorf(
+			"%w: no assets matching %q",
+			errNoFileMatch,
+			assetRegex.String(),
+		)
+	}
+
+	version := pickVersion(versions, def.Source.Version.Pick)
+
+	return fetchResult{
+		Version: version,
+		Tag:     rel.TagName,
+	}, nil
+}
+
+// fetchVersionFromAssets fetches the latest release and verifies the requested
+// version exists among the assets.
+func fetchVersionFromAssets(
+	ctx context.Context, def Definition, data TemplateData, version string,
+) (fetchResult, error) {
+	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/latest",
+		def.Source.Owner, def.Source.Repo)
+
+	var rel githubRelease
+
+	err := downloader.FetchJSON(ctx, url, &rel)
+	if err != nil {
+		return fetchResult{}, fmt.Errorf("fetch github release: %w", err)
+	}
+
+	if rel.TagName == "" {
+		return fetchResult{}, errNoReleaseTag
+	}
+
+	assetRegex, err := compileAssetRegex(def, data)
+	if err != nil {
+		return fetchResult{}, err
+	}
+
+	for _, asset := range rel.Assets {
+		matches := assetRegex.FindStringSubmatch(asset.Name)
+		if len(matches) >= regexMinMatches && matches[1] == version {
+			return fetchResult{
+				Version: version,
+				Tag:     rel.TagName,
+			}, nil
+		}
+	}
+
+	return fetchResult{}, fmt.Errorf("%w: version %q not found in release %s",
+		errVersionNotFound, version, rel.TagName)
+}
+
+// pickVersion selects a version from the list based on the pick strategy.
+func pickVersion(versions []string, strategy string) string {
+	if len(versions) == 0 {
+		return ""
+	}
+
+	if strategy == "highest" {
+		best := versions[0]
+
+		for _, v := range versions[1:] {
+			if semver.Compare("v"+v, "v"+best) > 0 {
+				best = v
+			}
+		}
+
+		return best
+	}
+
+	// Default: return the first match.
+	return versions[0]
 }
 
 // fetchVersionFromJSONAPI fetches the JSON API and searches for a specific version.

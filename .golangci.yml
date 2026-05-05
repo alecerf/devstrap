@@ -7,7 +7,9 @@ linters:
     - depguard
     - exhaustruct
     - gochecknoglobals
+    - goconst
     - tagliatelle
+    - testpackage
   settings:
     gosec:
       excludes:

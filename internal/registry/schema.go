@@ -87,13 +87,27 @@ type Source struct {
 	Repo string `json:"repo,omitempty"`
 }
 
-// VersionExtract describes how to pull a version string from a JSON response.
+// VersionExtract describes how to pull a version string from a JSON response
+// or from GitHub release asset names.
 type VersionExtract struct {
 	// Path is a simple expression like "[0].version" to navigate JSON.
-	Path string `json:"path"`
+	// Used with "json_api" source type.
+	Path string `json:"path,omitempty"`
 
 	// StripPrefix is removed from the extracted value (e.g. "go" or "v").
+	// Used with "json_api" source type.
 	StripPrefix string `json:"strip_prefix,omitempty"`
+
+	// AssetRegex is a Go template + regex applied to GitHub release asset names.
+	// The first capture group extracts the version string.
+	// Template variables {{.OS}} and {{.Arch}} are available.
+	// Used with "github_release" source type.
+	AssetRegex string `json:"asset_regex,omitempty"`
+
+	// Pick determines which version to select when multiple assets match.
+	// "highest" selects the highest semantic version.
+	// Used with "github_release" source type.
+	Pick string `json:"pick,omitempty"`
 }
 
 // FileMatch describes how to locate a file entry and its checksum in a JSON
@@ -165,10 +179,12 @@ type Detect struct {
 	VersionRegex string `json:"version_regex"`
 }
 
-// PlatformSpec describes supported OS/arch combinations and optional name mappings.
+// PlatformSpec describes supported OS/arch combinations and name mappings.
 type PlatformSpec struct {
-	// OS lists supported operating systems (e.g. ["darwin", "linux"]).
-	OS []string `json:"os"`
+	// OS maps runtime GOOS values to tool-specific OS names.
+	// Example: {"darwin": "darwin", "linux": "linux"}
+	// Example: {"darwin": "apple-darwin", "linux": "unknown-linux-gnu"}
+	OS map[string]string `json:"os"`
 
 	// Arch maps runtime GOARCH values to tool-specific arch names.
 	// Example: {"amd64": "x64", "arm64": "arm64"}

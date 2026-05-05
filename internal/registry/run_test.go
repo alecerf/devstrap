@@ -1,22 +1,14 @@
-package registry_test
+package registry
 
 import (
 	"context"
 	"errors"
 	"testing"
-
-	"github.com/alecerf/devstrap/internal/registry"
-)
-
-const (
-	versionOne = "1.0.0"
-	versionTwo = "2.0.0"
-	extraData  = "extra-data"
 )
 
 var errMock = errors.New("mock error")
 
-// mockTool implements the registry.Tool interface for testing.
+// mockTool implements the Tool interface for testing.
 type mockTool struct {
 	name           string
 	fetchLatest    func() (string, string, error)
@@ -45,7 +37,7 @@ func (m *mockTool) Install(_ context.Context, _ func(string), version, extra str
 
 func noop(string) {}
 
-func assertCheckInfo(t *testing.T, got, want registry.CheckInfo) {
+func assertCheckInfo(t *testing.T, got, want CheckInfo) {
 	t.Helper()
 
 	if got.Name != want.Name {
@@ -69,7 +61,7 @@ func assertCheckInfo(t *testing.T, got, want registry.CheckInfo) {
 	}
 }
 
-func assertResult(t *testing.T, got, want registry.Result) {
+func assertResult(t *testing.T, got, want Result) {
 	t.Helper()
 
 	if got.Name != want.Name {
@@ -103,14 +95,14 @@ func TestIsNewer(t *testing.T) {
 		{"older", "1.2.3", "1.2.4", false},
 		{"equal strings fallback", "not-semver", "not-semver", false},
 		{"different strings fallback", "b", "a", true},
-		{"one invalid strings differ", versionOne, "invalid", true},
+		{"one invalid strings differ", "1.0.0", "invalid", true},
 	}
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := registry.ExportIsNewer(testCase.latest, testCase.current)
+			got := isNewer(testCase.latest, testCase.current)
 			if got != testCase.want {
 				t.Errorf("isNewer(%q, %q) = %v, want %v",
 					testCase.latest, testCase.current, got, testCase.want)
@@ -119,36 +111,34 @@ func TestIsNewer(t *testing.T) {
 	}
 }
 
-type checkTestCase struct {
-	name     string
-	tool     *mockTool
-	wantInfo registry.CheckInfo
-}
-
 func TestCheck(t *testing.T) {
 	t.Parallel()
 
-	tests := []checkTestCase{
+	tests := []struct {
+		name     string
+		tool     *mockTool
+		wantInfo CheckInfo
+	}{
 		{
 			name: "up to date",
 			tool: &mockTool{
 				name:           "test-tool",
-				fetchLatest:    func() (string, string, error) { return versionOne, "", nil },
-				currentVersion: func() (string, error) { return versionOne, nil },
+				fetchLatest:    func() (string, string, error) { return "1.0.0", "", nil },
+				currentVersion: func() (string, error) { return "1.0.0", nil },
 			},
-			wantInfo: registry.CheckInfo{
-				Name: "test-tool", Current: versionOne, Latest: versionOne, UpToDate: true,
+			wantInfo: CheckInfo{
+				Name: "test-tool", Current: "1.0.0", Latest: "1.0.0", UpToDate: true,
 			},
 		},
 		{
 			name: "needs update",
 			tool: &mockTool{
 				name:           "test-tool",
-				fetchLatest:    func() (string, string, error) { return versionTwo, "", nil },
-				currentVersion: func() (string, error) { return versionOne, nil },
+				fetchLatest:    func() (string, string, error) { return "2.0.0", "", nil },
+				currentVersion: func() (string, error) { return "1.0.0", nil },
 			},
-			wantInfo: registry.CheckInfo{
-				Name: "test-tool", Current: versionOne, Latest: versionTwo, UpToDate: false,
+			wantInfo: CheckInfo{
+				Name: "test-tool", Current: "1.0.0", Latest: "2.0.0", UpToDate: false,
 			},
 		},
 		{
@@ -157,17 +147,17 @@ func TestCheck(t *testing.T) {
 				name:        "test-tool",
 				fetchLatest: func() (string, string, error) { return "", "", errMock },
 			},
-			wantInfo: registry.CheckInfo{Name: "test-tool", Err: errMock},
+			wantInfo: CheckInfo{Name: "test-tool", Err: errMock},
 		},
 		{
 			name: "not installed",
 			tool: &mockTool{
 				name:           "test-tool",
-				fetchLatest:    func() (string, string, error) { return versionOne, "", nil },
+				fetchLatest:    func() (string, string, error) { return "1.0.0", "", nil },
 				currentVersion: func() (string, error) { return "", errMock },
 			},
-			wantInfo: registry.CheckInfo{
-				Name: "test-tool", Current: "", Latest: versionOne, UpToDate: false,
+			wantInfo: CheckInfo{
+				Name: "test-tool", Current: "", Latest: "1.0.0", UpToDate: false,
 			},
 		},
 	}
@@ -177,63 +167,49 @@ func TestCheck(t *testing.T) {
 			t.Parallel()
 			assertCheckInfo(
 				t,
-				registry.Check(context.Background(), testCase.tool, noop),
+				Check(context.Background(), testCase.tool, noop),
 				testCase.wantInfo,
 			)
 		})
 	}
 }
 
-type runTestCase struct {
-	name       string
-	tool       *mockTool
-	wantResult registry.Result
-}
-
 func TestRun(t *testing.T) {
 	t.Parallel()
 
-	tests := []runTestCase{
+	tests := []struct {
+		name       string
+		tool       *mockTool
+		wantResult Result
+	}{
 		{
 			name: "up to date",
 			tool: &mockTool{
 				name:           "test-tool",
-				fetchLatest:    func() (string, string, error) { return versionOne, "", nil },
-				currentVersion: func() (string, error) { return versionOne, nil },
+				fetchLatest:    func() (string, string, error) { return "1.0.0", "", nil },
+				currentVersion: func() (string, error) { return "1.0.0", nil },
 			},
-			wantResult: registry.Result{
-				Name:    "test-tool",
-				Status:  "up-to-date",
-				Version: versionOne,
-			},
+			wantResult: Result{Name: "test-tool", Status: "up-to-date", Version: "1.0.0"},
 		},
 		{
 			name: "installs new version",
 			tool: &mockTool{
 				name:           "test-tool",
-				fetchLatest:    func() (string, string, error) { return versionTwo, extraData, nil },
-				currentVersion: func() (string, error) { return versionOne, nil },
+				fetchLatest:    func() (string, string, error) { return "2.0.0", "extra", nil },
+				currentVersion: func() (string, error) { return "1.0.0", nil },
 				install:        func(string, string) error { return nil },
 			},
-			wantResult: registry.Result{
-				Name:    "test-tool",
-				Status:  "installed",
-				Version: versionTwo,
-			},
+			wantResult: Result{Name: "test-tool", Status: "installed", Version: "2.0.0"},
 		},
 		{
 			name: "installs when not installed",
 			tool: &mockTool{
 				name:           "test-tool",
-				fetchLatest:    func() (string, string, error) { return versionOne, extraData, nil },
+				fetchLatest:    func() (string, string, error) { return "1.0.0", "extra", nil },
 				currentVersion: func() (string, error) { return "", errMock },
 				install:        func(string, string) error { return nil },
 			},
-			wantResult: registry.Result{
-				Name:    "test-tool",
-				Status:  "installed",
-				Version: versionOne,
-			},
+			wantResult: Result{Name: "test-tool", Status: "installed", Version: "1.0.0"},
 		},
 		{
 			name: "fetch error",
@@ -241,17 +217,17 @@ func TestRun(t *testing.T) {
 				name:        "test-tool",
 				fetchLatest: func() (string, string, error) { return "", "", errMock },
 			},
-			wantResult: registry.Result{Name: "test-tool", Err: errMock},
+			wantResult: Result{Name: "test-tool", Err: errMock},
 		},
 		{
 			name: "install error",
 			tool: &mockTool{
 				name:           "test-tool",
-				fetchLatest:    func() (string, string, error) { return versionTwo, extraData, nil },
-				currentVersion: func() (string, error) { return versionOne, nil },
+				fetchLatest:    func() (string, string, error) { return "2.0.0", "extra", nil },
+				currentVersion: func() (string, error) { return "1.0.0", nil },
 				install:        func(string, string) error { return errMock },
 			},
-			wantResult: registry.Result{Name: "test-tool", Err: errMock},
+			wantResult: Result{Name: "test-tool", Err: errMock},
 		},
 	}
 
@@ -260,7 +236,7 @@ func TestRun(t *testing.T) {
 			t.Parallel()
 			assertResult(
 				t,
-				registry.Run(context.Background(), testCase.tool, noop),
+				Run(context.Background(), testCase.tool, noop),
 				testCase.wantResult,
 			)
 		})
@@ -274,17 +250,17 @@ func TestRunVersion(t *testing.T) {
 		name       string
 		tool       *mockTool
 		version    string
-		wantResult registry.Result
+		wantResult Result
 	}{
 		{
 			name: "installs specified version",
 			tool: &mockTool{
 				name:         "test-tool",
-				fetchVersion: func(string) (string, error) { return extraData, nil },
+				fetchVersion: func(string) (string, error) { return "extra", nil },
 				install:      func(string, string) error { return nil },
 			},
 			version:    "1.5.0",
-			wantResult: registry.Result{Name: "test-tool", Status: "installed", Version: "1.5.0"},
+			wantResult: Result{Name: "test-tool", Status: "installed", Version: "1.5.0"},
 		},
 		{
 			name: "fetch error",
@@ -293,17 +269,17 @@ func TestRunVersion(t *testing.T) {
 				fetchVersion: func(string) (string, error) { return "", errMock },
 			},
 			version:    "1.5.0",
-			wantResult: registry.Result{Name: "test-tool", Err: errMock},
+			wantResult: Result{Name: "test-tool", Err: errMock},
 		},
 		{
 			name: "install error",
 			tool: &mockTool{
 				name:         "test-tool",
-				fetchVersion: func(string) (string, error) { return extraData, nil },
+				fetchVersion: func(string) (string, error) { return "extra", nil },
 				install:      func(string, string) error { return errMock },
 			},
 			version:    "1.5.0",
-			wantResult: registry.Result{Name: "test-tool", Err: errMock},
+			wantResult: Result{Name: "test-tool", Err: errMock},
 		},
 	}
 
@@ -312,7 +288,7 @@ func TestRunVersion(t *testing.T) {
 			t.Parallel()
 			assertResult(
 				t,
-				registry.RunVersion(context.Background(), testCase.tool, noop, testCase.version),
+				RunVersion(context.Background(), testCase.tool, noop, testCase.version),
 				testCase.wantResult,
 			)
 		})
