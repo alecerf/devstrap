@@ -1,4 +1,4 @@
-// Package tool implements the "devstrap tool" command and its subcommands.
+// Package tool implements the "devstrap tool" subcommands.
 package tool
 
 import (
@@ -6,12 +6,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// NewCmd returns the "tool" parent command with its subcommands registered.
+// NewCmd returns the "tool" parent command with its subcommands.
 func NewCmd(paths *registry.Paths) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "tool",
 		Short: "Manage development tools",
-		Long:  "Commands for checking, upgrading, and listing development tools.",
 	}
 
 	cmd.AddCommand(

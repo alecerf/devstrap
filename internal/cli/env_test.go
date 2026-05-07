@@ -1,10 +1,6 @@
-package shell_test
+package cli
 
-import (
-	"testing"
-
-	"github.com/alecerf/devstrap/internal/shell"
-)
+import "testing"
 
 func TestZshSnippet(t *testing.T) {
 	t.Parallel()
@@ -31,8 +27,8 @@ func TestZshSnippet(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			if got := shell.ZshSnippet(testCase.dirs); got != testCase.want {
-				t.Errorf("ZshSnippet(%v) = %q, want %q", testCase.dirs, got, testCase.want)
+			if got := zshSnippet(testCase.dirs); got != testCase.want {
+				t.Errorf("zshSnippet(%v) = %q, want %q", testCase.dirs, got, testCase.want)
 			}
 		})
 	}

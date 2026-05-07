@@ -13,8 +13,6 @@ func DetectPlatform() Platform {
 	}
 }
 
-// mapPlatform maps the runtime OS and architecture to tool-specific values
-// using the definition's platform configuration.
 func mapPlatform(plat Platform, def Definition) (string, string, error) {
 	mappedOS, osFound := def.Platforms.OS[plat.OS]
 	if !osFound {

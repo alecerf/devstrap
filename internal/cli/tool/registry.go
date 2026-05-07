@@ -18,9 +18,6 @@ func toolNames() []string {
 	return idx.ToolNames()
 }
 
-// validateAllFlag checks the --all flag against the provided tool arguments.
-// It returns the effective args slice: nil when --all is set (meaning all tools),
-// or the original args otherwise.
 func validateAllFlag(all bool, args []string) ([]string, error) {
 	if all && len(args) > 0 {
 		return nil, errAllAndToolsMutuallyExclusive
@@ -37,8 +34,6 @@ func validateAllFlag(all bool, args []string) ([]string, error) {
 	return args, nil
 }
 
-// resolveTools loads all tool definitions, validates the given args (if any),
-// and returns the ordered name list filtered to args.
 func resolveTools(paths registry.Paths, args []string) ([]string, map[string]registry.Tool, error) {
 	plat := registry.DetectPlatform()
 

@@ -1,6 +1,4 @@
-// Package downloader provides utilities for downloading, verifying, and
-// extracting release artifacts. It handles the full lifecycle: HTTP download,
-// SHA-256 checksum verification, tar.gz extraction, and binary installation.
+// Package downloader handles HTTP download, checksum verification, and extraction.
 package downloader
 
 import (
@@ -26,7 +24,7 @@ const (
 
 var httpClient = &http.Client{Timeout: httpTimeoutMinutes * time.Minute}
 
-// FetchJSON performs a GET request to url and decodes the JSON response into result.
+// FetchJSON performs a GET request and decodes the JSON response into result.
 func FetchJSON[T any](ctx context.Context, url string, result *T) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -91,8 +89,6 @@ func Download(ctx context.Context, url, dst string) (err error) {
 }
 
 // InstallBinary copies a binary to destDir atomically and makes it executable.
-// It writes to a temporary file first, then renames to the final path.
-// This avoids ETXTBSY on Linux when replacing a running binary.
 func InstallBinary(src, destDir, name string) error {
 	err := os.MkdirAll(destDir, dirPerm)
 	if err != nil {
@@ -108,7 +104,6 @@ func InstallBinary(src, destDir, name string) error {
 
 	defer func() { _ = srcFile.Close() }()
 
-	// Write to a temp file in the same directory so os.Rename is atomic.
 	tmp, err := os.CreateTemp(destDir, ".devstrap-install-*")
 	if err != nil {
 		return fmt.Errorf("create temp file: %w", err)

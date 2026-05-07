@@ -1,4 +1,4 @@
-// Package cli implements the devstrap command-line interface using cobra.
+// Package cli implements the devstrap command-line interface.
 package cli
 
 import (
@@ -18,8 +18,6 @@ var (
 	verbose bool
 )
 
-// defaultDataDir returns the default data directory for tool installations,
-// respecting $XDG_DATA_HOME (fallback ~/.local/share/devstrap).
 func defaultDataDir() string {
 	if dir := os.Getenv("XDG_DATA_HOME"); dir != "" {
 		return filepath.Join(dir, "devstrap")
@@ -33,7 +31,6 @@ func defaultDataDir() string {
 	return filepath.Join(home, ".local", "share", "devstrap")
 }
 
-// defaultBinDir returns the default directory for standalone binaries (~/.local/bin).
 func defaultBinDir() string {
 	home, err := os.UserHomeDir()
 	if err != nil {

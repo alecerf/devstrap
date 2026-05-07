@@ -48,7 +48,7 @@ func newInstallCmd(paths *registry.Paths) *cobra.Command {
 				return runDryRun(*paths, resolved)
 			}
 
-			return runAction(*paths, resolved, versions, "installed")
+			return runInstall(*paths, resolved, versions)
 		},
 	}
 
@@ -59,17 +59,28 @@ func newInstallCmd(paths *registry.Paths) *cobra.Command {
 	return cmd
 }
 
-func runDryRun(paths registry.Paths, args []string) error {
+type toolResult struct {
+	acted    int
+	upToDate int
+	failed   int
+}
+
+// iterateTools resolves tools and runs process on each with a spinner.
+func iterateTools(
+	paths registry.Paths,
+	args []string,
+	process func(ctx context.Context, name string, tool registry.Tool, status func(string)) (string, string, error),
+) (toolResult, error) {
 	order, all, err := resolveTools(paths, args)
 	if err != nil {
-		return err
+		return toolResult{}, err
 	}
 
 	ctx := context.Background()
 	printer := ui.NewPrinter(order)
 	start := time.Now()
 
-	var upToDate, updatable, failed int
+	var counts toolResult
 
 	for i, name := range order {
 		prefix := printer.ProgressPrefix(i, len(order), name)
@@ -79,31 +90,101 @@ func runDryRun(paths registry.Paths, args []string) error {
 			spinner.Update(prefix + "  " + msg)
 		}
 
-		info := registry.Check(ctx, all[name], status)
+		outcome, msg, fnErr := process(ctx, name, all[name], status)
 
 		spinner.Stop()
 
-		switch {
-		case info.Err != nil:
-			printer.PrintError(name, info.Err)
+		switch outcome {
+		case "error":
+			printer.PrintError(name, fnErr)
 
-			failed++
-		case info.UpToDate:
-			printer.PrintSuccess(name, fmt.Sprintf("up-to-date (%s)", info.Current))
+			counts.failed++
+		case "up-to-date":
+			printer.PrintSuccess(name, msg)
 
-			upToDate++
-		case info.Current == "":
-			printer.PrintInfo(name, fmt.Sprintf("not installed → %s available", info.Latest))
+			counts.upToDate++
+		case "info":
+			printer.PrintInfo(name, msg)
 
-			updatable++
+			counts.acted++
 		default:
-			printer.PrintInfo(name, fmt.Sprintf("%s → %s available", info.Current, info.Latest))
+			printer.PrintSuccess(name, msg)
 
-			updatable++
+			counts.acted++
 		}
 	}
 
-	printer.PrintSummary(len(order), "to upgrade", updatable, upToDate, failed, time.Since(start))
+	printer.PrintSummary(
+		len(order), "installed", counts.acted, counts.upToDate, counts.failed, time.Since(start),
+	)
+
+	return counts, nil
+}
+
+func runInstall(paths registry.Paths, args []string, versions map[string]string) error {
+	counts, err := iterateTools(
+		paths,
+		args,
+		func(ctx context.Context, name string, tool registry.Tool, status func(string)) (string, string, error) {
+			var res registry.Result
+
+			if v := versions[name]; v != "" {
+				res = registry.RunVersion(ctx, tool, status, v)
+			} else {
+				res = registry.Run(ctx, tool, status)
+			}
+
+			if res.Err != nil {
+				return "error", "", res.Err
+			}
+
+			if res.Status == "up-to-date" {
+				return "up-to-date", fmt.Sprintf("up-to-date (%s)", res.Version), nil
+			}
+
+			return "success", "installed " + res.Version, nil
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	if counts.failed > 0 {
+		return errToolsFailed
+	}
+
+	return nil
+}
+
+func runDryRun(paths registry.Paths, args []string) error {
+	counts, err := iterateTools(
+		paths,
+		args,
+		func(ctx context.Context, _ string, tool registry.Tool, status func(string)) (string, string, error) {
+			info := registry.Check(ctx, tool, status)
+
+			if info.Err != nil {
+				return "error", "", info.Err
+			}
+
+			if info.UpToDate {
+				return "up-to-date", fmt.Sprintf("up-to-date (%s)", info.Current), nil
+			}
+
+			if info.Current == "" {
+				return "info", fmt.Sprintf("not installed → %s available", info.Latest), nil
+			}
+
+			return "info", fmt.Sprintf("%s → %s available", info.Current, info.Latest), nil
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	if counts.failed > 0 {
+		return errToolsFailed
+	}
 
 	return nil
 }

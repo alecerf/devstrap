@@ -24,12 +24,11 @@ go build -ldflags "-X github.com/alecerf/devstrap/internal/cli.Version=1.0.0"
 
 ## Architecture
 
-devstrap is a CLI that bootstraps and updates development tools by downloading official releases. Tool definitions are stored in an external JSON index ([devstrap-index](https://github.com/alecerf/devstrap-index)) and cached locally. It has five internal packages:
+devstrap is a CLI that bootstraps and updates development tools by downloading official releases. Tool definitions are stored in an external JSON index ([devstrap-index](https://github.com/alecerf/devstrap-index)) and cached locally. It has four internal packages:
 
 - **`internal/registry`** — Core package. Defines the `Tool` interface (`Name`, `FetchLatest`, `FetchVersion`, `CurrentVersion`, `Install`) and the `Installer` type that implements it from JSON `Definition`s. Provides orchestration functions `Run` (install/upgrade), `RunVersion` (exact version), and `Check` (dry-run). Handles version discovery (`json_api`, `github_release` source types), Go template rendering for URLs, platform/arch mapping, custom JSON path navigation, and index fetching/caching.
 - **`internal/downloader`** — HTTP download, SHA-256 checksum verification, tar.gz extraction, and atomic binary installation. Generic `FetchJSON[T]` is used by the registry package to query release APIs. Binary installation uses atomic replacement (temp file + rename) so devstrap can safely update itself.
-- **`internal/shell`** — Generates shell configuration (PATH export snippets) for devstrap-managed tool directories.
-- **`internal/cli`** — Cobra root command, `Execute()` entry point, `Version` variable (build-time injected, default `"dev"`), and persistent flags (`--data-dir`, `--bin-dir`).
+- **`internal/cli`** — Cobra root command, `Execute()` entry point, `Version` variable (build-time injected, default `"dev"`), persistent flags (`--data-dir`, `--bin-dir`), `env` command (shell PATH generation), and `version` command.
 - **`internal/cli/tool`** — `tool install`, `tool list`, and `tool uninstall` subcommands. Resolves tool names from the index, validates flag combinations, and delegates to `registry.Run`/`RunVersion`.
 - **`internal/cli/index`** — `index update`, `index list`, and `index search` subcommands.
 - **`internal/cli/ui`** — Terminal output helpers: `Printer` (padded, colored output), `Spinner` (Braille animation), TTY detection, and color functions.
@@ -63,4 +62,3 @@ Add a JSON definition file to the [devstrap-index](https://github.com/alecerf/de
 - Downloads always verify SHA-256 checksums before extraction.
 - Tools install into `<dataDir>/<tool>/` (default `~/.local/share/devstrap`). Standalone binaries go into `<binDir>/` (default `~/.local/bin`). Both respect XDG environment variables.
 - The tool index is cached at `$XDG_CACHE_HOME/devstrap/` (default `~/.cache/devstrap`) and must be manually updated with `devstrap index update`.
-- Test helpers in `export_test.go` expose private functions and sentinel errors for use in tests.

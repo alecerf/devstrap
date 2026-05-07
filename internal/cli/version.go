@@ -7,9 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Version is set at build time via ldflags:
-//
-//	go build -ldflags "-X github.com/alecerf/devstrap/internal/cli.Version=1.0.0"
+// Version is set at build time via ldflags.
 var Version = "dev"
 
 func newVersionCmd() *cobra.Command {

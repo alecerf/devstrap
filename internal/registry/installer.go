@@ -22,7 +22,7 @@ type Installer struct {
 	arch  string
 }
 
-// NewTool creates an Installer from a Definition, paths, and platform.
+// NewTool creates an Installer from a Definition.
 func NewTool(def Definition, paths Paths, plat Platform) (*Installer, error) {
 	mappedOS, mappedArch, err := mapPlatform(plat, def)
 	if err != nil {
@@ -37,7 +37,7 @@ func NewTool(def Definition, paths Paths, plat Platform) (*Installer, error) {
 	}, nil
 }
 
-// Name returns the tool's name as defined in the index.
+// Name returns the tool's name.
 func (i *Installer) Name() string { return i.def.Name }
 
 // Uninstall removes the installed tool from disk.
@@ -66,8 +66,7 @@ func (i *Installer) Uninstall() error {
 	}
 }
 
-// FetchLatest queries the source for the latest version and returns the version,
-// serialised fetch metadata (extra), and any error.
+// FetchLatest queries the source for the latest version.
 func (i *Installer) FetchLatest(ctx context.Context) (string, string, error) {
 	data := i.templateData()
 
@@ -76,7 +75,6 @@ func (i *Installer) FetchLatest(ctx context.Context) (string, string, error) {
 		return "", "", err
 	}
 
-	// Encode the full fetchResult as extra so Install() can use it.
 	extra, err := json.Marshal(result)
 	if err != nil {
 		return "", "", fmt.Errorf("marshal fetch result: %w", err)
@@ -85,8 +83,7 @@ func (i *Installer) FetchLatest(ctx context.Context) (string, string, error) {
 	return result.Version, string(extra), nil
 }
 
-// FetchVersion queries the source for a specific version and returns serialised
-// fetch metadata (extra) or an error.
+// FetchVersion queries the source for a specific version.
 func (i *Installer) FetchVersion(ctx context.Context, version string) (string, error) {
 	data := i.templateData()
 
@@ -140,8 +137,7 @@ func (i *Installer) CurrentVersion(ctx context.Context) (string, error) {
 	return v, nil
 }
 
-// Install downloads, verifies, and installs the tool at the given version using
-// the serialised fetch metadata produced by FetchLatest or FetchVersion.
+// Install downloads, verifies, and installs the tool at the given version.
 func (i *Installer) Install(ctx context.Context, status func(string), version, extra string) error {
 	var result fetchResult
 

@@ -1,4 +1,4 @@
-// Package ui provides terminal UI helpers for the devstrap CLI.
+// Package ui provides terminal output helpers for the devstrap CLI.
 package ui
 
 import (
@@ -11,7 +11,7 @@ import (
 	"github.com/fatih/color"
 )
 
-// Color helper functions for terminal output.
+// Color helpers for terminal output.
 var (
 	GreenBold  = color.New(color.FgGreen, color.Bold).SprintFunc()
 	RedBold    = color.New(color.FgRed, color.Bold).SprintFunc()
@@ -26,7 +26,7 @@ const (
 	Verbose = 2
 )
 
-// Verbosity controls the output detail level. Default is Normal.
+// Verbosity controls the output detail level.
 var Verbosity = Normal
 
 const secondsPerMinute = 60

@@ -1,3 +1,4 @@
+// Package registry implements the declarative tool index for devstrap.
 package registry
 
 import (
@@ -29,9 +30,7 @@ type Index struct {
 	Definitions []Definition
 }
 
-// CacheDir returns the default index cache directory.
-// It respects $XDG_CACHE_HOME, falling back to ~/.cache/devstrap.
-func CacheDir() (string, error) {
+func cacheDir() (string, error) {
 	if dir := os.Getenv("XDG_CACHE_HOME"); dir != "" {
 		return filepath.Join(dir, "devstrap"), nil
 	}
@@ -45,18 +44,16 @@ func CacheDir() (string, error) {
 }
 
 // Load reads the index from the local cache directory.
-// Returns ErrNoIndex if the cache does not exist.
 func Load() (*Index, error) {
-	cacheDir, err := CacheDir()
+	dir, err := cacheDir()
 	if err != nil {
 		return nil, err
 	}
 
-	return LoadFrom(filepath.Join(cacheDir, indexFilename))
+	return loadFrom(filepath.Join(dir, indexFilename))
 }
 
-// LoadFrom reads the index from the given JSON file.
-func LoadFrom(path string) (*Index, error) {
+func loadFrom(path string) (*Index, error) {
 	data, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -76,19 +73,17 @@ func LoadFrom(path string) (*Index, error) {
 	return &Index{Definitions: defs}, nil
 }
 
-// Update fetches the index from the remote repository and writes it to the
-// local cache directory.
+// Update fetches the index from the remote repository and writes it to cache.
 func Update(ctx context.Context, remoteURL string) error {
-	cacheDir, err := CacheDir()
+	dir, err := cacheDir()
 	if err != nil {
 		return err
 	}
 
-	return UpdateTo(ctx, remoteURL, cacheDir)
+	return UpdateTo(ctx, remoteURL, dir)
 }
 
-// UpdateTo fetches the tool listing and individual definitions from the remote
-// URL, assembles them into a single index file, and writes it to dir.
+// UpdateTo fetches and assembles the index into the given directory.
 func UpdateTo(ctx context.Context, remoteURL, dir string) error {
 	err := os.MkdirAll(dir, dirPerm)
 	if err != nil {

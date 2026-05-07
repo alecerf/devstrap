@@ -11,15 +11,13 @@ import (
 	"golang.org/x/mod/semver"
 )
 
-// fetchResult holds the output of a version discovery call.
 type fetchResult struct {
 	Version  string `json:"version"`
-	Tag      string `json:"tag"`      // GitHub release tag (may differ from version)
-	Filename string `json:"filename"` // matched filename from file_match (if any)
-	Checksum string `json:"checksum"` // embedded checksum from file_match (if any)
+	Tag      string `json:"tag"`
+	Filename string `json:"filename"`
+	Checksum string `json:"checksum"`
 }
 
-// fetchLatest discovers the latest version of a tool using its source config.
 func fetchLatest(ctx context.Context, def Definition, data TemplateData) (fetchResult, error) {
 	switch def.Source.Type {
 	case "json_api":
@@ -31,7 +29,6 @@ func fetchLatest(ctx context.Context, def Definition, data TemplateData) (fetchR
 	}
 }
 
-// fetchVersion discovers install metadata for a specific version.
 func fetchVersion(
 	ctx context.Context,
 	def Definition,
@@ -48,8 +45,6 @@ func fetchVersion(
 	}
 }
 
-// fetchFromJSONAPI fetches a JSON API endpoint and extracts the version
-// (and optionally a file match with checksum).
 func fetchFromJSONAPI(ctx context.Context, def Definition, data TemplateData) (fetchResult, error) {
 	var raw json.RawMessage
 
@@ -105,8 +100,6 @@ type githubAsset struct {
 	Name string `json:"name"`
 }
 
-// fetchFromGitHubRelease queries the GitHub releases API for the latest version.
-// If version.asset_regex is set, it scans asset names to extract the version.
 func fetchFromGitHubRelease(
 	ctx context.Context, def Definition, data TemplateData,
 ) (fetchResult, error) {
@@ -143,8 +136,6 @@ type fileMatchResult struct {
 	checksum string
 }
 
-// matchFile searches a JSON array for a file entry whose filename contains
-// the rendered pattern, and extracts the checksum field.
 func matchFile(
 	root any,
 	fileMatcher *FileMatch,
@@ -168,9 +159,6 @@ func matchFile(
 	return searchFileList(list, fileMatcher, data, version)
 }
 
-// matchFileInEntry is like matchFile but operates on a single array entry
-// rather than the full API response. It extracts the field portion of
-// ListPath (e.g. ".files" from "[0].files") to navigate within the entry.
 func matchFileInEntry(
 	entry any, fileMatcher *FileMatch, data TemplateData, version string,
 ) (fileMatchResult, error) {
@@ -224,13 +212,7 @@ func searchFileList(
 	return fileMatchResult{}, fmt.Errorf("%w for pattern %q", errNoFileMatch, pattern)
 }
 
-// navigatePath traverses a parsed JSON value using a simple path expression.
-// Supported syntax:
-//   - "[N]" — index into an array
-//   - ".field" — access an object key
-//
-// Example: "[0].version" navigates to the first array element, then its
-// "version" field.
+// navigatePath traverses a parsed JSON value using "[N]" and ".field" syntax.
 func navigatePath(data any, path string) (any, error) {
 	current := data
 	remaining := path
@@ -325,9 +307,6 @@ func navigateObject(current any, remaining, fullPath string) (any, string, error
 	return val, remaining[dot:], nil
 }
 
-// fetchVersionFromGitHubRelease queries the GitHub releases API for a specific version.
-// If asset_regex is set, it verifies the version exists in the latest release assets.
-// Otherwise, it tries the "v"-prefixed tag first, then the plain version string.
 func fetchVersionFromGitHubRelease(
 	ctx context.Context,
 	def Definition,
@@ -364,9 +343,6 @@ func fetchVersionFromGitHubRelease(
 	return fetchResult{}, fmt.Errorf("%w for version %q", errVersionNotFound, version)
 }
 
-// extractVersionFromAssets scans release assets to find the highest version
-// matching the asset_regex pattern.
-// compileAssetRegex renders the asset_regex template and compiles it.
 func compileAssetRegex(def Definition, data TemplateData) (*regexp.Regexp, error) {
 	pattern, err := renderTemplate(def.Source.Version.AssetRegex, data)
 	if err != nil {
@@ -414,8 +390,6 @@ func extractVersionFromAssets(
 	}, nil
 }
 
-// fetchVersionFromAssets fetches the latest release and verifies the requested
-// version exists among the assets.
 func fetchVersionFromAssets(
 	ctx context.Context, def Definition, data TemplateData, version string,
 ) (fetchResult, error) {
@@ -452,7 +426,6 @@ func fetchVersionFromAssets(
 		errVersionNotFound, version, rel.TagName)
 }
 
-// pickVersion selects a version from the list based on the pick strategy.
 func pickVersion(versions []string, strategy string) string {
 	if len(versions) == 0 {
 		return ""
@@ -474,7 +447,6 @@ func pickVersion(versions []string, strategy string) string {
 	return versions[0]
 }
 
-// fetchVersionFromJSONAPI fetches the JSON API and searches for a specific version.
 func fetchVersionFromJSONAPI(
 	ctx context.Context, def Definition, data TemplateData, version string,
 ) (fetchResult, error) {
@@ -519,11 +491,6 @@ func fetchVersionFromJSONAPI(
 	return result, nil
 }
 
-// constructFetchResult builds a fetchResult when the requested version is not
-// present in the API response. It synthesises the filename from the tool's
-// naming convention: {strip_prefix}{version}.{rendered filename_contains}.
-// No embedded checksum is available in this case; the separate checksum file
-// is used if the tool definition provides one.
 func constructFetchResult(
 	def Definition, data TemplateData, version string,
 ) (fetchResult, error) {
@@ -539,9 +506,6 @@ func constructFetchResult(
 	return fetchResult{Version: version, Filename: filename}, nil
 }
 
-// findVersionEntry searches a JSON array for an entry matching the requested version.
-// It uses the version path (e.g., "[0].version") to determine the array location
-// and the version field within each element.
 func findVersionEntry(root any, vCfg VersionExtract, version string) (any, error) {
 	arrayPath, fieldPath, err := splitVersionPath(vCfg.Path)
 	if err != nil {
@@ -591,13 +555,6 @@ func findVersionEntry(root any, vCfg VersionExtract, version string) (any, error
 	return nil, fmt.Errorf("%w: %q not found in API response", errVersionNotFound, version)
 }
 
-// splitVersionPath splits a version path like "[0].version" into the path
-// to the containing array and the field path within each element.
-//
-// Examples:
-//
-//	"[0].version"            → arrayPath="",          fieldPath=".version"
-//	".releases[0].version"   → arrayPath=".releases", fieldPath=".version"
 func splitVersionPath(path string) (string, string, error) {
 	bracket := strings.Index(path, "[")
 	if bracket == -1 {

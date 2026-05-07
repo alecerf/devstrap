@@ -30,7 +30,7 @@ func Check(ctx context.Context, tool Tool, status func(string)) CheckInfo {
 	}
 }
 
-// Run checks for updates and installs if needed.
+// Run checks for updates and installs if a newer version is available.
 func Run(ctx context.Context, tool Tool, status func(string)) Result {
 	status("checking for updates...")
 
@@ -54,10 +54,7 @@ func Run(ctx context.Context, tool Tool, status func(string)) Result {
 	return Result{Name: tool.Name(), Status: "installed", Version: latest}
 }
 
-// RunVersion installs the exact requested version.
-// It always performs the installation because version detection may be
-// unreliable (e.g. Go's GOTOOLCHAIN auto-forwarding reports a different
-// version than the one actually installed on disk).
+// RunVersion installs the exact requested version unconditionally.
 func RunVersion(ctx context.Context, tool Tool, status func(string), version string) Result {
 	status(fmt.Sprintf("fetching metadata for %s...", version))
 
@@ -76,7 +73,6 @@ func RunVersion(ctx context.Context, tool Tool, status func(string), version str
 	return Result{Name: tool.Name(), Status: "installed", Version: version}
 }
 
-// isNewer returns true if latest is a newer semantic version than current.
 func isNewer(latest, current string) bool {
 	latestV := "v" + latest
 
@@ -88,7 +84,7 @@ func isNewer(latest, current string) bool {
 	return semver.Compare(latestV, c) > 0
 }
 
-// RunVersionCmd runs a binary with the given args and parses the version from output.
+// RunVersionCmd runs a binary and parses its version output.
 func RunVersionCmd(
 	ctx context.Context,
 	bin string,

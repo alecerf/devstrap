@@ -24,7 +24,7 @@ type Spinner struct {
 	doneCh chan struct{}
 }
 
-// NewSpinner starts a new animated spinner with the given message.
+// NewSpinner starts an animated spinner with the given message.
 func NewSpinner(msg string) *Spinner {
 	spinner := &Spinner{
 		msg:    msg,
