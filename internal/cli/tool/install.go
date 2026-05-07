@@ -19,8 +19,13 @@ func newInstallCmd(paths *registry.Paths) *cobra.Command {
 
 	long := "Install downloads and sets up the specified tools.\n\n" +
 		"Pin a specific version with tool@version (e.g. go@1.22.0).\n" +
-		"Use --dry-run to check for available upgrades without installing.\n\n" +
-		"Available tools: " + strings.Join(toolNames(), ", ")
+		"Use --dry-run to check for available upgrades without installing."
+
+	if names := toolNames(); len(names) > 0 {
+		long += "\n\nAvailable tools: " + strings.Join(names, ", ")
+	} else {
+		long += "\n\nRun 'devstrap index update' to see available tools."
+	}
 
 	cmd := &cobra.Command{
 		Use:       "install <tools[@version]... | --all>",
