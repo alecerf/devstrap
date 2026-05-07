@@ -242,7 +242,7 @@ func (i *Installer) installDirectory(ctx context.Context, tmp, archiveFile strin
 		return fmt.Errorf("create extract dir: %w", err)
 	}
 
-	err = downloader.ExtractTarGz(ctx, archiveFile, extractDir, i.def.Install.StripComponents)
+	err = downloader.Extract(ctx, archiveFile, extractDir, i.def.Install.StripComponents)
 	if err != nil {
 		return fmt.Errorf("extract archive: %w", err)
 	}
@@ -277,7 +277,7 @@ func (i *Installer) installBinary(
 	data TemplateData,
 	tmp, archiveFile string,
 ) error {
-	err := downloader.ExtractTarGz(ctx, archiveFile, tmp, 0)
+	err := downloader.Extract(ctx, archiveFile, tmp, 0)
 	if err != nil {
 		return fmt.Errorf("extract archive: %w", err)
 	}
