@@ -30,7 +30,7 @@ devstrap is a CLI that bootstraps and updates development tools by downloading o
 - **`internal/downloader`** — HTTP download, SHA-256 checksum verification, tar.gz extraction, and atomic binary installation. Generic `FetchJSON[T]` is used by the registry package to query release APIs. Binary installation uses atomic replacement (temp file + rename) so devstrap can safely update itself.
 - **`internal/shell`** — Generates shell configuration (PATH export snippets) for devstrap-managed tool directories.
 - **`internal/cli`** — Cobra root command, `Execute()` entry point, `Version` variable (build-time injected, default `"dev"`), and persistent flags (`--data-dir`, `--bin-dir`).
-- **`internal/cli/tool`** — `tool install` and `tool list` subcommands. Resolves tool names from the index, validates flag combinations, and delegates to `registry.Run`/`RunVersion`.
+- **`internal/cli/tool`** — `tool install`, `tool list`, and `tool uninstall` subcommands. Resolves tool names from the index, validates flag combinations, and delegates to `registry.Run`/`RunVersion`.
 - **`internal/cli/index`** — `index update`, `index list`, and `index search` subcommands.
 - **`internal/cli/ui`** — Terminal output helpers: `Printer` (padded, colored output), `Spinner` (Braille animation), TTY detection, and color functions.
 
@@ -40,7 +40,8 @@ devstrap is a CLI that bootstraps and updates development tools by downloading o
 devstrap (root)
 ├── tool
 │   ├── install <tools[@version]... | --all>  [--dry-run]
-│   └── list
+│   ├── list
+│   └── uninstall <tools...>
 ├── index
 │   ├── update
 │   ├── list
