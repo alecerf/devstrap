@@ -47,15 +47,26 @@ func VerifyChecksum(file, expected string) (err error) {
 	return nil
 }
 
+// sha256HexLen is the length of a SHA-256 hash encoded as a hex string.
+const sha256HexLen = 64
+
 // ExtractChecksum reads a checksum file and returns the hex checksum for the
-// given filename.
+// given filename. If the file contains a single raw hex hash (no filename),
+// it is returned directly.
 func ExtractChecksum(shaFile, filename string) (string, error) {
 	data, err := os.ReadFile(filepath.Clean(shaFile))
 	if err != nil {
 		return "", fmt.Errorf("read %s: %w", shaFile, err)
 	}
 
-	for line := range strings.SplitSeq(string(data), "\n") {
+	content := strings.TrimSpace(string(data))
+
+	// Raw hash: single line with only a hex SHA-256 (e.g. kubectl .sha256 files).
+	if len(content) == sha256HexLen && !strings.ContainsAny(content, " \t\n") {
+		return content, nil
+	}
+
+	for line := range strings.SplitSeq(content, "\n") {
 		parts := strings.Fields(line)
 		if len(parts) >= 2 && strings.TrimPrefix(parts[1], "*") == filename {
 			return parts[0], nil

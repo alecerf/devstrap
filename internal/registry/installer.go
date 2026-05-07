@@ -81,7 +81,7 @@ func (i *Installer) FetchVersion(ctx context.Context, version string) (string, e
 func (i *Installer) CurrentVersion(ctx context.Context) (string, error) {
 	var bin string
 
-	if i.def.Install.Mode == "binary" {
+	if i.def.Install.Mode == "binary" || i.def.Install.Mode == "direct" {
 		bin = filepath.Join(i.paths.BinDir, i.def.Install.BinaryName)
 	} else {
 		bin = filepath.Join(i.paths.DataDir, i.def.Detect.Binary)
@@ -153,13 +153,19 @@ func (i *Installer) Install(ctx context.Context, status func(string), version, e
 		return err
 	}
 
-	status("extracting...")
-
 	switch i.def.Install.Mode {
 	case "directory":
+		status("extracting...")
+
 		return i.installDirectory(ctx, tmp, archiveFile)
 	case "binary":
+		status("extracting...")
+
 		return i.installBinary(ctx, data, tmp, archiveFile)
+	case "direct":
+		status("installing...")
+
+		return i.installDirect(archiveFile)
 	default:
 		return fmt.Errorf("%w: %s", errUnsupportedInstallMode, i.def.Install.Mode)
 	}
@@ -252,6 +258,15 @@ func (i *Installer) installDirectory(ctx context.Context, tmp, archiveFile strin
 	err = os.Rename(extractDir, dest)
 	if err != nil {
 		return fmt.Errorf("rename to %s: %w", dest, err)
+	}
+
+	return nil
+}
+
+func (i *Installer) installDirect(downloadedFile string) error {
+	err := downloader.InstallBinary(downloadedFile, i.paths.BinDir, i.def.Install.BinaryName)
+	if err != nil {
+		return fmt.Errorf("install binary: %w", err)
 	}
 
 	return nil

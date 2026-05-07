@@ -158,6 +158,18 @@ func TestExtractChecksum(t *testing.T) {
 			filename: "second.tar.gz",
 			wantHash: "bbb222",
 		},
+		{
+			name:     "raw hash no filename",
+			content:  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\n",
+			filename: "ignored.tar.gz",
+			wantHash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+		},
+		{
+			name:     "raw hash no trailing newline",
+			content:  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+			filename: "ignored.tar.gz",
+			wantHash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+		},
 	}
 
 	for _, testCase := range tests {

@@ -145,8 +145,9 @@ type Checksum struct {
 
 // Install describes how to install the downloaded artifact.
 type Install struct {
-	// Mode is "directory" (extract archive to a folder) or "binary"
-	// (extract a single binary).
+	// Mode is "directory" (extract archive to a folder), "binary"
+	// (extract a single binary from an archive), or "direct" (download a
+	// standalone binary without archive extraction).
 	Mode string `json:"mode"`
 
 	// Dest is the installation directory relative to DataDir for directory-mode
@@ -157,7 +158,8 @@ type Install struct {
 	// (like tar --strip-components). Only used with mode "directory".
 	StripComponents int `json:"strip_components,omitempty"`
 
-	// BinaryName is the binary filename. Only used with mode "binary".
+	// BinaryName is the binary filename. Only used with mode "binary"
+	// and "direct".
 	BinaryName string `json:"binary_name,omitempty"`
 
 	// ArchivePath is a Go template for the path to the binary inside the
