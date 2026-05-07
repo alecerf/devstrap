@@ -52,13 +52,13 @@ curl -sSfL https://raw.githubusercontent.com/alecerf/devstrap/trunk/install.sh |
 devstrap
 ├── tool
 │   ├── install      Install or upgrade development tools
-│   └── list         List tools and their installed versions
+│   ├── list         List tools and their installed versions
+│   └── uninstall    Remove installed tools
 ├── index
 │   ├── update       Fetch the latest tool index
 │   ├── list         List all tools in the index
 │   └── search       Search tools by name or description
 ├── env              Print PATH exports for your shell
-├── update           Update devstrap to the latest version
 ├── version          Print the devstrap version
 └── completion       Generate shell completions (zsh, bash, fish, powershell)
 ```
@@ -103,6 +103,18 @@ devstrap tool list
 
 Tools that aren't installed yet are shown as "not installed".
 
+### `devstrap tool uninstall`
+
+Remove one or more installed tools.
+
+```sh
+# Remove a single tool
+devstrap tool uninstall terraform
+
+# Remove multiple tools
+devstrap tool uninstall go node
+```
+
 ### `devstrap index update`
 
 Fetch the latest tool definitions from the remote [index repository](https://github.com/alecerf/devstrap-index).
@@ -144,16 +156,6 @@ Add this to your `~/.zshrc` so tools are always on your `PATH`:
 source <(devstrap env)
 ```
 
-### `devstrap update`
-
-Update the devstrap CLI itself to the latest version.
-
-```sh
-devstrap update
-```
-
-Downloads the latest release from GitHub, verifies its checksum, and atomically replaces the running binary.
-
 ### `devstrap completion`
 
 Generate shell completion scripts. Supports zsh, bash, fish, and powershell.
@@ -176,15 +178,17 @@ devstrap version
 
 ### Global Flags
 
-These flags can be used with any `tool` subcommand:
+These flags can be used with any subcommand:
 
-| Flag         | Description                       | Default                   |
-| ------------ | --------------------------------- | ------------------------- |
-| `--data-dir` | Directory for tool installations  | `~/.local/share/devstrap` |
-| `--bin-dir`  | Directory for standalone binaries | `~/.local/bin`            |
+| Flag         | Short | Description                       | Default                   |
+| ------------ | ----- | --------------------------------- | ------------------------- |
+| `--data-dir` |       | Directory for tool installations  | `~/.local/share/devstrap` |
+| `--bin-dir`  |       | Directory for standalone binaries | `~/.local/bin`            |
+| `--verbose`  | `-v`  | Show detailed output              |                           |
 
 ```sh
 devstrap tool install --all --data-dir ~/dev --bin-dir ~/dev/bin
+devstrap tool install --all --verbose
 ```
 
 ## Shell Integration
