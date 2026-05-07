@@ -16,6 +16,7 @@ type Tool interface {
 	FetchVersion(ctx context.Context, version string) (extra string, err error)
 	CurrentVersion(ctx context.Context) (string, error)
 	Install(ctx context.Context, status func(string), version, extra string) error
+	Uninstall() error
 }
 
 // Paths holds the resolved installation directories.

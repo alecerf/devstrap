@@ -35,6 +35,8 @@ func (m *mockTool) Install(_ context.Context, _ func(string), version, extra str
 	return m.install(version, extra)
 }
 
+func (m *mockTool) Uninstall() error { return nil }
+
 func noop(string) {}
 
 func assertCheckInfo(t *testing.T, got, want CheckInfo) {

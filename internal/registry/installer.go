@@ -40,6 +40,32 @@ func NewTool(def Definition, paths Paths, plat Platform) (*Installer, error) {
 // Name returns the tool's name as defined in the index.
 func (i *Installer) Name() string { return i.def.Name }
 
+// Uninstall removes the installed tool from disk.
+func (i *Installer) Uninstall() error {
+	switch i.def.Install.Mode {
+	case "directory":
+		dest := filepath.Join(i.paths.DataDir, i.def.Install.Dest)
+
+		err := os.RemoveAll(dest)
+		if err != nil {
+			return fmt.Errorf("remove %s: %w", dest, err)
+		}
+
+		return nil
+	case "binary", "direct":
+		bin := filepath.Join(i.paths.BinDir, i.def.Install.BinaryName)
+
+		err := os.Remove(bin)
+		if err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("remove %s: %w", bin, err)
+		}
+
+		return nil
+	default:
+		return fmt.Errorf("%w: %s", errUnsupportedInstallMode, i.def.Install.Mode)
+	}
+}
+
 // FetchLatest queries the source for the latest version and returns the version,
 // serialised fetch metadata (extra), and any error.
 func (i *Installer) FetchLatest(ctx context.Context) (string, string, error) {
