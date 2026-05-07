@@ -8,11 +8,15 @@ import (
 
 	"github.com/alecerf/devstrap/internal/cli/index"
 	"github.com/alecerf/devstrap/internal/cli/tool"
+	"github.com/alecerf/devstrap/internal/cli/ui"
 	"github.com/alecerf/devstrap/internal/registry"
 	"github.com/spf13/cobra"
 )
 
-var paths registry.Paths
+var (
+	paths   registry.Paths
+	verbose bool
+)
 
 // defaultDataDir returns the default data directory for tool installations,
 // respecting $XDG_DATA_HOME (fallback ~/.local/share/devstrap).
@@ -51,12 +55,19 @@ Run "devstrap index update" to fetch the latest tool definitions,
 or "devstrap tool install --all" to bring everything to the latest version.`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
+		PersistentPreRun: func(_ *cobra.Command, _ []string) {
+			if verbose {
+				ui.Verbosity = ui.Verbose
+			}
+		},
 	}
 
 	root.PersistentFlags().
 		StringVar(&paths.DataDir, "data-dir", defaultDataDir(), "directory for tool installations")
 	root.PersistentFlags().
 		StringVar(&paths.BinDir, "bin-dir", defaultBinDir(), "directory for standalone binaries")
+	root.PersistentFlags().
+		BoolVarP(&verbose, "verbose", "v", false, "show detailed output")
 
 	root.AddCommand(
 		tool.NewCmd(&paths),

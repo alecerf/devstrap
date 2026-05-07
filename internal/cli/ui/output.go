@@ -20,6 +20,15 @@ var (
 	Dim        = color.New(color.Faint).SprintFunc()
 )
 
+// Verbosity levels.
+const (
+	Normal  = 1
+	Verbose = 2
+)
+
+// Verbosity controls the output detail level. Default is Normal.
+var Verbosity = Normal
+
 const secondsPerMinute = 60
 
 // Printer formats tool output with aligned names.
