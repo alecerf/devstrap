@@ -3,13 +3,14 @@ version: "2"
 linters:
   default: all
   disable:
-    - wsl
     - depguard
     - exhaustruct
     - gochecknoglobals
     - goconst
+    - gomodguard
     - tagliatelle
     - testpackage
+    - wsl
   settings:
     gosec:
       excludes:
