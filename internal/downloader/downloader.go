@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 )
 
@@ -24,12 +25,55 @@ const (
 
 var httpClient = &http.Client{Timeout: httpTimeoutMinutes * time.Minute}
 
+// checkRateLimit checks GitHub API rate limit headers and prints a warning if needed.
+func checkRateLimit(resp *http.Response) {
+	remaining := resp.Header.Get("X-Ratelimit-Remaining")
+	if remaining == "" {
+		return
+	}
+
+	remainingCount, err := strconv.Atoi(remaining)
+	if err != nil || remainingCount > 10 {
+		return
+	}
+
+	limit := resp.Header.Get("X-Ratelimit-Limit")
+	reset := resp.Header.Get("X-Ratelimit-Reset")
+
+	if limit != "" && reset != "" {
+		resetTime := time.Unix(0, 0)
+
+		v, errParse := strconv.ParseInt(reset, 10, 64)
+		if errParse == nil {
+			resetTime = time.Unix(v, 0)
+		}
+
+		msg := fmt.Sprintf(
+			"⚠️  GitHub API rate limit low: %d/%s remaining (resets at %s). Set GITHUB_TOKEN for higher limits.\n",
+			remainingCount,
+			limit,
+			resetTime.Format(time.RFC822),
+		)
+		fmt.Fprint(os.Stderr, msg)
+	}
+}
+
+// addGitHubAuth adds GitHub authentication if GITHUB_TOKEN is set.
+func addGitHubAuth(req *http.Request) {
+	token := os.Getenv("GITHUB_TOKEN")
+	if token != "" {
+		req.Header.Set("Authorization", "token "+token)
+	}
+}
+
 // FetchJSON performs a GET request and decodes the JSON response into result.
 func FetchJSON[T any](ctx context.Context, url string, result *T) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return fmt.Errorf("create request: %w", err)
 	}
+
+	addGitHubAuth(req)
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
@@ -41,6 +85,8 @@ func FetchJSON[T any](ctx context.Context, url string, result *T) error {
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("fetch %s: %w: %d", url, ErrHTTPStatus, resp.StatusCode)
 	}
+
+	checkRateLimit(resp)
 
 	err = json.NewDecoder(resp.Body).Decode(result)
 	if err != nil {
@@ -57,6 +103,8 @@ func Download(ctx context.Context, url, dst string) (err error) {
 		return fmt.Errorf("download %s: %w", url, err)
 	}
 
+	addGitHubAuth(req)
+
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("download %s: %w", url, err)
@@ -67,6 +115,8 @@ func Download(ctx context.Context, url, dst string) (err error) {
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("download %s: %w: %d", url, ErrHTTPStatus, resp.StatusCode)
 	}
+
+	checkRateLimit(resp)
 
 	destFile, err := os.Create(filepath.Clean(dst))
 	if err != nil {

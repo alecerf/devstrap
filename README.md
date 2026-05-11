@@ -102,6 +102,23 @@ source <(devstrap completion zsh)
 | `--bin-dir`  |       | Directory for standalone binaries | `~/.local/bin`            |
 | `--verbose`  | `-v`  | Show detailed output              |                           |
 
+## GitHub API Rate Limiting
+
+By default, unauthenticated requests to the GitHub API are limited to 60 requests per hour. This may cause rate limit errors (HTTP 403) when installing many tools or updating the index frequently.
+
+### Using a GitHub Token
+
+Set the `GITHUB_TOKEN` environment variable to authenticate requests and increase the rate limit to 5,000 requests per hour:
+
+```sh
+export GITHUB_TOKEN=your_github_token
+devstrap tool install --all
+```
+
+[Create a personal access token](https://github.com/settings/tokens) with no scopes (public access only).
+
+devstrap will automatically warn you if the rate limit is running low (< 10 requests remaining).
+
 ## License
 
 [MIT](LICENSE)
